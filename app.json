@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "FE-app2",
-    "slug": "FE-app2",
+    "name": "FE-app",
+    "slug": "FE-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +24,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "googleMapsApiKey": "AIzaSyDnZywd8LD9BjRGAycnOENixD8fyM_lnjE"
     }
   }
 }
