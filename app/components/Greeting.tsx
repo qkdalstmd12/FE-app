@@ -1,6 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 
+// 기록 기반 통계 계산
+const runningData = [
+  100.6632089042602,
+  55.59746332254485,
+];
+
+const totalDistanceKm = runningData.reduce((sum, m) => sum + m / 1000, 0).toFixed(2);
+const totalCalories = Math.round(Number(totalDistanceKm) * 60); // 1km당 60kcal 소모
+
 export default function HeaderGreeting() {
   return (
     <View style={styles.container}>
@@ -18,10 +27,10 @@ export default function HeaderGreeting() {
 
       <View style={styles.statBox}>
         <Text style={styles.statText}>
-          지금까지 <Text style={styles.highlight}>5,000km</Text> 걸으셨고
+          지금까지 <Text style={styles.highlight}>{totalDistanceKm}km</Text> 걸으셨고
         </Text>
         <Text style={styles.statText}>
-          총 <Text style={styles.highlight}>5900kcal</Text>를 소모하셨어요!
+          총 <Text style={styles.highlight}>{totalCalories}kcal</Text>를 소모하셨어요!
         </Text>
       </View>
     </View>

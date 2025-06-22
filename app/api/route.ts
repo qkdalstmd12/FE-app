@@ -1,54 +1,54 @@
+
 import api from './axios';
 
-const API_BASE = 'http://192.168.0.6:3658/m1/943861-927263-default';
-
-// 오늘의 러닝 루트 불러오기
-export const fetchTodayRoutes = async (userId: number) => {
-  const url = '/route/today';
-  console.log('[요청 시작]', url, 'user_id:', userId); 
-
-  try {
-    const res = await api.get(url, {
-      params: { user_id: userId },
-    });
-    console.log('[응답 성공]', res.data);
-    return res.data;
-  } catch (err) {
-    console.error('[요청 실패]', err);
-    throw err;
-  }
+// 고정 루트 목록 가져오기
+export const fetchFixedRoutes = async (userId: string) => {
+  const res = await api.get('/api/route/fixed', {
+    params: { user_id: userId },
+  });
+  return res.data;
 };
 
-// 새 루트 추천 요청
-export const requestRouteRecommendation = async (data: {
-  start_point: string;
-  end_point: string;
-  preferences: {
-    loop: boolean;
-    publicTransport: boolean;
-    flat: boolean;
-    quiet: boolean;
-  };
+// 특정 고정 루트의 추천 경로 가져오기
+export const fetchCandidateRoutes = async (fixedRouteId: number) => {
+  const res = await api.get('/api/route/fixed/recommended', {
+    params: {
+      user_id: 'user_123', // 이후 Zustand 또는 로그인 값으로 대체 가능
+      fixed_route_id: fixedRouteId,
+    },
+  });
+  return res.data;
+};
+
+// 새 루트 추천 요청 (자유 러닝 포함)
+export const requestNewRouteRecommendation = async (payload: {
+  start_point: { latitude: number; longitude: number };
+  end_point?: { latitude: number; longitude: number }; // 자유 러닝이면 없음
+  preferences: any;
+  environment: any;
+  run_ratio: string | number;
+  user_running_history: any[];
 }) => {
-  const res = await api.post('/route/recommend', data);
+  const endpoint = payload.end_point
+    ? '/api/route/recommend/new'
+    : '/api/route/recommend/free';
+
+  const res = await api.post(endpoint, payload);
   return res.data;
 };
 
 // 추천된 루트 저장하기
-export const saveRecommendedRoute = async (data: {
-  user_id: number;
-  route_id: number;
-  custom_name: string;
-}) => {
-  const res = await api.post('/route/save', data);
-  return res.data;
-};
-
-// 기존 루트를 기반으로 추천 후보 경로 가져오기
-export const fetchCandidateRoutes = async (baseRouteId: number) => {
-  const res = await api.post('/route/recommend/base', {
-    user_id: 123,
-    base_route_id: baseRouteId,
+export const saveRecommendedRoute = async (
+  userId: string,
+  routeId: number,
+  customName: string
+) => {
+  const res = await api.post('/api/route/save', null, {
+    params: {
+      user_id: userId,
+      route_id: routeId,
+      custom_name: customName,
+    },
   });
   return res.data;
 };

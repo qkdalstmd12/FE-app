@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import axios from 'axios';
+import api from '../api/axios';
 import { useRouteStore } from '../store/routeStore';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 
@@ -11,32 +11,53 @@ export default function EditRouteScreen() {
 
   const navigation = useNavigation();
   const { selectNewRoute, todayRoutes } = useRouteStore();
-
   const [candidateRoutes, setCandidateRoutes] = useState<any[]>([]);
 
   useEffect(() => {
     const loadCandidateRoutes = async () => {
       try {
-        const res = await axios.get(
-          'http://192.168.0.6:3658/m1/943861-927263-default/api/route/fixed/recommended',
-          {
-            params: {
-              user_id: 'user_123',
-              fixed_route_id: routeId,
-            },
-          }
-        );
+        const res = await api.get('/api/route/fixed/recommended', {
+          params: {
+            user_id: 'user_123',
+            fixed_route_id: routeId,
+          },
+        });
 
         console.log('🟢 추천 경로 응답:', res.data);
-      const routeList = res.data?.[routeId];
-      if (!routeList || !Array.isArray(routeList)) {
-        throw new Error('후보 경로 없음 또는 데이터 형식 오류');
-      }
+
+        const routeList = Array.isArray(res.data)
+          ? res.data
+          : res.data?.[routeId] ?? [];
+
+        if (!Array.isArray(routeList)) {
+          throw new Error('후보 경로 없음 또는 데이터 형식 오류');
+        }
+
         const mapped = routeList.map((r: any, idx: number) => ({
-          id: r.route_id ?? idx, // route_id 우선 사용
+          id: r.route_id ?? idx,
           name: r.custom_name ?? `후보 루트 ${idx + 1}`,
-          duration: r.duration ?? 0,
-          coordinates: r.coordinates ?? [],
+          duration: r.duration ?? r.recommend?.expected_time ?? 0,
+          coordinates: Array.isArray(r.coordinates)
+  ? r.coordinates
+  : Array.isArray(r.coord)
+    ? r.coord.map((point: any) => {
+        if (Array.isArray(point)) {
+          const [lat, lng] = point;
+          return { latitude: lat, longitude: lng };
+        } else if (point.latitude && point.longitude) {
+          return { latitude: point.latitude, longitude: point.longitude };
+        } else {
+          return null;
+        }
+      }).filter(Boolean)
+    : [],
+
+          feature: r.feature ?? {
+            park: { count: 0 },
+            river: { count: 0 },
+            amenity: { count: 0 },
+            cross: { count: 0 },
+          },
         }));
 
         setCandidateRoutes(mapped);
@@ -58,20 +79,15 @@ export default function EditRouteScreen() {
     if (!newRoute || !oldRoute) return;
 
     try {
-      await axios.post(
-        'http://192.168.0.6:3658/m1/943861-927263-default/api/route/save',
-        {},
-        {
-          params: {
-            user_id: 'user_123',
-            route_id: newRouteId,
-            custom_name: oldRoute.name,
-          },
-        }
-      );
+      await api.post('/api/route/save', null, {
+        params: {
+          user_id: 'user_123',
+          route_id: newRouteId,
+          custom_name: oldRoute.name,
+        },
+      });
 
       selectNewRoute(routeId, newRoute);
-
       Alert.alert('수정 완료', '경로가 성공적으로 변경되었습니다!');
       navigation.goBack();
     } catch (error) {
@@ -90,6 +106,7 @@ export default function EditRouteScreen() {
           <TouchableOpacity style={styles.item} onPress={() => handleSelect(item.id)}>
             <Text style={styles.routeName}>{item.name}</Text>
             <Text style={styles.routeTime}>{item.duration}분 소요</Text>
+
             {item.coordinates.length > 0 && (
               <MapView
                 style={styles.map}
@@ -102,15 +119,19 @@ export default function EditRouteScreen() {
                 scrollEnabled={false}
                 zoomEnabled={false}
               >
-                <Polyline
-                  coordinates={item.coordinates}
-                  strokeColor="#3B82F6"
-                  strokeWidth={4}
-                />
+                <Polyline coordinates={item.coordinates} strokeColor="#3B82F6" strokeWidth={4} />
                 <Marker coordinate={item.coordinates[0]} title="출발" />
                 <Marker coordinate={item.coordinates[item.coordinates.length - 1]} title="도착" />
               </MapView>
             )}
+
+            {/* Feature Info */}
+            <View style={styles.featureBox}>
+              <Text> 공원: {item.feature?.park?.count ?? 0}</Text>
+              <Text> 하천: {item.feature?.river?.count ?? 0}</Text>
+              <Text> 편의시설: {item.feature?.amenity?.count ?? 0}</Text>
+              <Text> 횡단보도: {item.feature?.cross?.count ?? 0}</Text>
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={<Text style={{ color: '#666' }}>추천 경로가 없습니다.</Text>}
@@ -151,5 +172,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 150,
     borderRadius: 8,
+  },
+  featureBox: {
+    marginTop: 8,
+    gap: 2,
   },
 });

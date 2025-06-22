@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Entypo } from '@expo/vector-icons';
 import MapView, { Polyline, Marker } from 'react-native-maps';
-import axios from 'axios';
+import { fetchRouteFromGoogle } from '../utils/googleDirections';
+
 
 type RouteCardProps = {
   route: {
@@ -19,6 +20,12 @@ type RouteCardProps = {
     coordinates?: { latitude: number; longitude: number }[];
     start_point?: { lat: number; lng: number };
     end_point?: { lat: number; lng: number };
+    feature?: {
+      park?: { count: number };
+      river?: { count: number };
+      amenity?: { count: number };
+      cross?: { count: number };
+    };
   };
   onEdit: () => void;
   onDelete: () => void;
@@ -26,29 +33,25 @@ type RouteCardProps = {
 
 export const RouteCard = ({ route, onEdit, onDelete }: RouteCardProps) => {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [showMap, setShowMap] = useState(false);
+  const [pathCoords, setPathCoords] = useState(route.coordinates ?? []);
+
+  const feature = route.feature ?? {
+    park: { count: 0 },
+    river: { count: 0 },
+    amenity: { count: 0 },
+    cross: { count: 0 },
+  };
 
   useEffect(() => {
-    const fetchRoute = async () => {
-      if (!route.start_point || !route.end_point) return;
-
-      try {
-        const res = await axios.get(
-          `https://maps.googleapis.com/maps/api/directions/json?origin=${route.start_point.lat},${route.start_point.lng}&destination=${route.end_point.lat},${route.end_point.lng}&mode=walking&key=AIzaSyDnZywd8LD9BjRGAycnOENixD8fyM_lnjE`
-        );
-
-        const encoded = res.data.routes?.[0]?.overview_polyline?.points;
-        if (encoded) {
-          const decoded = decodePolyline(encoded);
-          setCoordinates(decoded);
-        }
-      } catch (err) {
-        console.error('Google Maps Directions API 호출 실패:', err);
+    const fetchPath = async () => {
+      if (!route.coordinates && route.start_point && route.end_point) {
+        const coords = await fetchRouteFromGoogle(route.start_point, route.end_point);
+        setPathCoords(coords);
       }
     };
-
-    fetchRoute();
-  }, [route]);
+    if (showMap) fetchPath();
+  }, [showMap]);
 
   return (
     <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
@@ -60,36 +63,40 @@ export const RouteCard = ({ route, onEdit, onDelete }: RouteCardProps) => {
         <View style={styles.textColumn}>
           <Text style={styles.name}>{route.name}</Text>
           <Text style={styles.duration}>{route.duration}분 러닝</Text>
+
+          <View style={styles.featureBox}>
+            <Text> 공원: {feature.park?.count ?? 0}</Text>
+            <Text> 하천: {feature.river?.count ?? 0}</Text>
+            <Text> 편의시설: {feature.amenity?.count ?? 0}</Text>
+            <Text> 횡단보도: {feature.cross?.count ?? 0}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.mapToggleButton} onPress={() => setShowMap(!showMap)}>
+            <Text style={styles.mapToggleText}>{showMap ? '지도 숨기기' : '지도 보기'}</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 지도 미리보기 */}
-        <View style={styles.mapPreview}>
-          <MapView
-            style={{ width: 160, height: 160 }}
-            scrollEnabled={true}
-            zoomEnabled={true}      
-            pitchEnabled={false}    
-            rotateEnabled={false}
-            initialRegion={{
-        latitude: route.coordinates?.[0]?.latitude || 37.5665,
-        longitude: route.coordinates?.[0]?.longitude || 126.9780,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-  }}
->
-  {route.coordinates && (
-    <>
-      <Polyline
-        coordinates={route.coordinates}
-        strokeColor="#3B82F6"
-        strokeWidth={3}
-      />
-      <Marker coordinate={route.coordinates[0]} />
-    </>
-  )}
-</MapView>
-
-        </View>
+        {showMap && pathCoords.length > 0 && (
+          <View style={styles.mapPreview}>
+            <MapView
+              style={styles.map}
+              scrollEnabled={true}
+              zoomEnabled={true}
+              pitchEnabled={false}
+              rotateEnabled={false}
+              initialRegion={{
+                latitude: pathCoords[0]?.latitude || 37.5665,
+                longitude: pathCoords[0]?.longitude || 126.9780,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+            >
+              <Polyline coordinates={pathCoords} strokeColor="#3B82F6" strokeWidth={3} />
+              <Marker coordinate={pathCoords[0]} />
+              <Marker coordinate={pathCoords[pathCoords.length - 1]} />
+            </MapView>
+          </View>
+        )}
 
         <TouchableOpacity style={styles.startButton}>
           <Text style={styles.startButtonText}>경로 시작</Text>
@@ -112,45 +119,13 @@ export const RouteCard = ({ route, onEdit, onDelete }: RouteCardProps) => {
   );
 };
 
-
-function decodePolyline(encoded: string) {
-  let points: { latitude: number; longitude: number }[] = [];
-  let index = 0, lat = 0, lng = 0;
-
-  while (index < encoded.length) {
-    let b, shift = 0, result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    let dlat = (result & 1) ? ~(result >> 1) : result >> 1;
-    lat += dlat;
-
-    shift = 0;
-    result = 0;
-    do {
-      b = encoded.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    let dlng = (result & 1) ? ~(result >> 1) : result >> 1;
-    lng += dlng;
-
-    points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
-  }
-
-  return points;
-}
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     position: 'relative',
     borderWidth: 1.5,
     borderColor: '#ccc',
@@ -187,11 +162,28 @@ const styles = StyleSheet.create({
   duration: {
     fontSize: 14,
     color: 'gray',
+    marginBottom: 4,
+  },
+  featureBox: {
+    marginTop: 8,
+    gap: 2,
+  },
+  mapToggleButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#eee',
+    borderRadius: 6,
+  },
+  mapToggleText: {
+    color: '#333',
+    fontSize: 14,
   },
   mapPreview: {
-    width: 160,
-    height: 160,
-    marginHorizontal: 16,
+    width: '100%',
+    height: 200,
+    marginTop: 12,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -201,10 +193,11 @@ const styles = StyleSheet.create({
   },
   startButton: {
     backgroundColor: '#3B82F6',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    marginTop: 100,
+    marginTop: 16,
+    alignItems: 'center',
   },
   startButtonText: {
     color: '#fff',

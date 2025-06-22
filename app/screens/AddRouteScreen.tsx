@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, Alert, FlatList, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, Alert, TouchableWithoutFeedback } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
-import axios from 'axios';
-import { useRouteStore } from '../store/routeStore';
+import axios from '../api/axios';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDnZywd8LD9BjRGAycnOENixD8fyM_lnjE';
 
@@ -16,14 +15,16 @@ export default function AddRouteScreen() {
   const [flatPath, setFlatPath] = useState(true);
   const [notCrowded, setNotCrowded] = useState(true);
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
-
-  const addRoute = useRouteStore((state) => state.addRoute);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [region, setRegion] = useState({
+    latitude: 35.0,
+    longitude: 128.0,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-      address
-    )}&key=${GOOGLE_MAPS_API_KEY}`;
-
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`;
     const res = await axios.get(url);
     const loc = res.data.results?.[0]?.geometry?.location;
     if (!loc) throw new Error('지오코딩 실패');
@@ -32,9 +33,7 @@ export default function AddRouteScreen() {
 
   const fetchSuggestions = async (input: string, setter: (s: string[]) => void) => {
     if (!input) return setter([]);
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-      input
-    )}&key=${GOOGLE_MAPS_API_KEY}`;
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}`;
     try {
       const res = await axios.get(url);
       const suggestions = res.data.predictions.map((p: any) => p.description);
@@ -45,10 +44,7 @@ export default function AddRouteScreen() {
   };
 
   const handleStart = async () => {
-    if (!start) {
-      Alert.alert('출발지를 입력해주세요');
-      return;
-    }
+    if (!start) return Alert.alert('출발지를 입력해주세요');
 
     try {
       const start_point = await geocodeAddress(start);
@@ -68,57 +64,26 @@ export default function AddRouteScreen() {
         weather: 'cloudy',
       };
 
-      const url = end
-        ? 'http://192.168.0.6:3658/m1/943861-927263-default/api/route/recommend/new'
-        : 'http://192.168.0.6:3658/m1/943861-927263-default/api/route/recommend/free';
+      const endpoint = end_point ? '/api/route/recommend/new' : '/api/route/recommend/free';
+      const payload = end_point
+        ? { start_point, end_point, preferences, environment, run_ratio: 1.0, user_running_history: [] }
+        : { start_point, preferences, environment, run_ratio: 1.0 };
 
-      const payload = end
-        ? {
-            start_point,
-            end_point,
-            preferences,
-            environment,
-            run_ratio: 1.0,
-            user_running_history: [],
-          }
-        : {
-            start_point,
-            preferences,
-            environment,
-            run_ratio: 1.0,
-          };
+      const response = await axios.post(endpoint, payload);
 
-      const response = await axios.post(url, payload);
-      console.log('추천 경로 응답:', response.data);
-      if (!Array.isArray(response.data.coordinates)) {
-        Alert.alert('경로 정보가 없습니다.');
-        return;
-      }
-      
-      const { route_id, custom_name, duration, coordinates: rawCoords } = response.data;
+      const { duration: d, coordinates: rawCoords } = response.data;
+      const routeCoords = rawCoords?.map((c: any) => ({
+        latitude: c.lat ?? c.latitude,
+        longitude: c.lng ?? c.longitude,
+      }));
 
-const routeCoords = rawCoords.map((c: any) => ({
-  latitude: c.lat ?? c.latitude,
-  longitude: c.lng ?? c.longitude,
-}));
-
-
-
-
-      if (!routeCoords || !Array.isArray(routeCoords)) {
-        Alert.alert('경로 정보가 없습니다.');
-        return;
-      }
+      if (!routeCoords || !Array.isArray(routeCoords)) return Alert.alert('경로 정보가 없습니다.');
 
       setCoordinates(routeCoords);
+      setDuration(d ?? null);
+      setRegion({ latitude: routeCoords[0].latitude, longitude: routeCoords[0].longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
 
-      addRoute({
-        id: route_id,
-        name: custom_name,
-        duration,
-      });
-
-      Alert.alert('추천된 경로가 추가되었습니다!');
+      Alert.alert('추천된 경로가 지도에 표시되었습니다!');
     } catch (error) {
       console.error(error);
       Alert.alert('경로 추천에 실패했습니다');
@@ -127,15 +92,7 @@ const routeCoords = rawCoords.map((c: any) => ({
 
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: coordinates[0]?.latitude || 35.0,
-          longitude: coordinates[0]?.longitude || 128.0,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
+      <MapView style={styles.map} region={region}>
         {coordinates.length > 0 && (
           <>
             <Polyline coordinates={coordinates} strokeColor="#3B82F6" strokeWidth={4} />
@@ -156,7 +113,15 @@ const routeCoords = rawCoords.map((c: any) => ({
           style={styles.input}
         />
         {startSuggestions.map((s, idx) => (
-          <TouchableWithoutFeedback key={idx} onPress={() => { setStart(s); setStartSuggestions([]); }}>
+          <TouchableWithoutFeedback
+            key={idx}
+            onPress={async () => {
+              setStart(s);
+              setStartSuggestions([]);
+              const { lat, lng } = await geocodeAddress(s);
+              setRegion({ latitude: lat, longitude: lng, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+            }}
+          >
             <Text style={styles.suggestion}>{s}</Text>
           </TouchableWithoutFeedback>
         ))}
@@ -176,26 +141,15 @@ const routeCoords = rawCoords.map((c: any) => ({
           </TouchableWithoutFeedback>
         ))}
 
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>순환</Text>
-          <Switch value={loop} onValueChange={setLoop} />
-        </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>대중교통 포함</Text>
-          <Switch value={publicTransport} onValueChange={setPublicTransport} />
-        </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>완만한 경사</Text>
-          <Switch value={flatPath} onValueChange={setFlatPath} />
-        </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>붐비지 않은 곳</Text>
-          <Switch value={notCrowded} onValueChange={setNotCrowded} />
-        </View>
-
         <TouchableOpacity style={styles.submitButton} onPress={handleStart}>
           <Text style={styles.submitButtonText}>경로 추천 시작</Text>
         </TouchableOpacity>
+
+        {duration !== null && (
+          <Text style={{ textAlign: 'center', fontSize: 16, marginTop: 10 }}>
+            ⏱ 예상 소요 시간: {duration}분
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -214,10 +168,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#ddd',
   },
-  switchRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
-  },
-  switchLabel: { fontSize: 16, color: '#333' },
   submitButton: {
     backgroundColor: '#3B82F6', padding: 14, borderRadius: 8, marginTop: 16, alignItems: 'center',
   },

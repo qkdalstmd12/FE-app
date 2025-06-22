@@ -6,7 +6,7 @@ import HeaderGreeting from '../components/Greeting';
 import { RouteCard } from '../components/RouteCard';
 import { useRouteStore } from '../store/routeStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import axios from 'axios';
+import api from '../api/axios';
 
 type MainScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainScreen'>;
 
@@ -14,21 +14,28 @@ export default function MainScreen() {
   const navigation = useNavigation<MainScreenNavigationProp>();
   const { todayRoutes, deleteRoute, setTodayRoutes } = useRouteStore();
 
-  //오늘의 루트 불러오기
   useEffect(() => {
     const loadRoutes = async () => {
       try {
-        const res = await axios.get( 'http://192.168.0.6:3658/m1/943861-927263-default/api/route/fixed',
-  { params: { user_id: '123' } }
-);
+        const res = await api.get('/api/route/fixed', {
+          params: { user_id: '123' },
+        });
+
         console.log('[오늘의 루트 응답]', res.data);
-        console.log('응답 원본:', JSON.stringify(res.data, null, 2));
 
         const mappedRoutes = res.data.map((r: any, idx: number) => ({
-          id: r.route_id ?? r.id ?? idx,
-          name: r.custom_name ?? r.name ?? `루트${idx + 1}`,
-          duration: r.duration ?? r.time ?? 0,
-          coordinates: r.coordinates ?? [],
+          id: r.route_id ?? idx,
+          name: `${r.routine?.origin ?? '출발지'} → ${r.routine?.destination ?? '도착지'}`,
+          duration: r.selected_path?.recommend?.expected_time ?? 0,
+          coordinates: (r.selected_path?.coord ?? []).map(
+            ([latitude, longitude]: [number, number]) => ({ latitude, longitude })
+          ),
+          feature: r.selected_path?.feature ?? {
+            park: { count: 0 },
+            river: { count: 0 },
+            amenity: { count: 0 },
+            cross: { count: 0 },
+          },
         }));
 
         setTodayRoutes(mappedRoutes);
@@ -53,7 +60,8 @@ export default function MainScreen() {
 
   return (
     <View style={styles.container}>
-      <HeaderGreeting />
+      <HeaderGreeting/>
+
       <Text style={styles.title}>오늘의 러닝</Text>
 
       {todayRoutes.length === 0 ? (
@@ -68,13 +76,9 @@ export default function MainScreen() {
         </View>
       ) : (
         <>
-          {console.log('todayRoutes:', todayRoutes)}
-
           <FlatList
             data={todayRoutes}
-            keyExtractor={(item, index) =>
-              item?.id?.toString?.() ?? index.toString()
-            }
+            keyExtractor={(item, index) => item?.id?.toString?.() ?? index.toString()}
             renderItem={({ item }) =>
               item?.id ? (
                 <RouteCard
@@ -86,22 +90,13 @@ export default function MainScreen() {
             }
           />
 
-          {/*통계 보기 버튼 */}
           <TouchableOpacity
-            style={{
-              marginTop: 16,
-              backgroundColor: '#3B82F6',
-              padding: 12,
-              borderRadius: 8,
-            }}
+            style={styles.summaryButton}
             onPress={() => navigation.navigate('RunningSummaryScreen')}
           >
-            <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>
-              통계 보기
-            </Text>
+            <Text style={styles.summaryButtonText}>통계 보기</Text>
           </TouchableOpacity>
 
-          {/*러닝 경로 추가 버튼 */}
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate('AddRouteScreen')}
@@ -152,5 +147,16 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  summaryButton: {
+    marginTop: 16,
+    backgroundColor: '#3B82F6',
+    padding: 12,
+    borderRadius: 8,
+  },
+  summaryButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
