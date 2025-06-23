@@ -1,6 +1,6 @@
 import { createRoutine } from '@/api/user/routine';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // 루틴 객체 타입 정의
@@ -49,6 +49,16 @@ const dayIdxToServerDay = (idx: number): string => {
     default:
       return '';
   }
+};
+
+const titleToPlaceEnum = (title: string): ServerRoutine['place'] => {
+  const map: { [key: string]: ServerRoutine['place'] } = {
+    회사: 'COMPANY',
+    헬스장: 'GYM',
+    학교: 'SCHOOL',
+    집: 'HOME',
+  };
+  return map[title] ?? 'ETC';
 };
 
 const toServerRoutine = (routine: Routine): ServerRoutine => ({

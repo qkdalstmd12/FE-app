@@ -2,7 +2,7 @@ import { getToken } from '@/utils/auth';
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'https://mock.apidog.com/m1/971345-956259-default/',
+  baseURL: 'https://5f23-165-229-148-177.ngrok-free.app/',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -15,7 +15,7 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 export default instance;

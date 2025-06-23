@@ -1,13 +1,26 @@
 import axios from 'axios';
 
+const titleToPlaceEnum = (title: string) => {
+  const map: { [key: string]: string } = {
+    회사: 'COMPANY',
+    헬스장: 'GYM',
+    학교: 'SCHOOL',
+    집: 'HOME',
+  };
+  return map[title] ?? 'ETC';
+};
+
 // 루틴 생성
 export const createRoutine = async (routine: { place: string; destination: string; time: string; day: string[] }) => {
   try {
+    console.log(routine);
+    routine['place'] = titleToPlaceEnum(routine['place']);
+    console.log(routine);
     const response = await axios.post('/api/routines-create', routine);
     return response.data;
   } catch (error: any) {
     console.error('루틴 생성 실패:', error.response?.data || error.message);
-    throw error.response?.data || { message: '루틴 생성 실패' };
+    throw error.response?.data || { message: '루틴 생성 실패' + error };
   }
 };
 

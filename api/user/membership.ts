@@ -1,5 +1,5 @@
-import { saveToken } from "@/utils/auth";
-import axios from "../axios";
+import { saveToken } from '@/utils/auth';
+import axios from '../axios';
 
 // 회원가입
 export const signupUser = async (data: {
@@ -86,7 +86,7 @@ export const confirmResetPassword = async (code: string, newPassword: string) =>
   }
 };
 
-// 현재 비밀번호 확인 
+// 현재 비밀번호 확인
 export const confirmPassword = async (confirmPassword: string, token: string) => {
   try {
     const response = await axios.post(
@@ -96,7 +96,7 @@ export const confirmPassword = async (confirmPassword: string, token: string) =>
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error: any) {
@@ -105,13 +105,12 @@ export const confirmPassword = async (confirmPassword: string, token: string) =>
   }
 };
 
-
-// 이메일 로그인(Runnify로) 
+// 이메일 로그인(Runnify로)
 export const runnifyloginUser = async (email: string, password: string) => {
   try {
     const response = await axios.post('/api/login', { email, password });
-    console.log(response)
     const token = response.data?.token;
+    console.log(token);
 
     if (token) {
       saveToken(token);
@@ -121,7 +120,7 @@ export const runnifyloginUser = async (email: string, password: string) => {
 
     return response.data;
   } catch (error: any) {
-    console.error('로그인 오류:', error,error.response?.data || error.message);
+    console.error('로그인 오류:', error, error.response?.data || error.message);
     throw error.response?.data || { message: '로그인 실패' };
   }
 };

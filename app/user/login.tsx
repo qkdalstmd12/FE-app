@@ -1,6 +1,6 @@
 import { runnifyloginUser } from '@/api/user/membership';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginPage() {
@@ -17,15 +17,11 @@ export default function LoginPage() {
       router.push('/');
     } catch (error) {
       console.log(error);
-      router.push('/');
     }
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollContainer}
-      keyboardShouldPersistTaps="handled"
-    >
+    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={styles.formContainer}>
         <View style={styles.formHeader}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -60,15 +56,15 @@ export default function LoginPage() {
             />
           </View>
           <View style={styles.formAlter}>
-          <TouchableOpacity onPress={()=>router.push("/user/membership")}>
-            <Text>회원가입</Text>
+            <TouchableOpacity onPress={() => router.push('/user/membership')}>
+              <Text>회원가입</Text>
             </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push("/user/findId")}>
-        <Text>아이디 찾기</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push("/user/findPassword")}>
-        <Text>비밀번호 찾기</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/user/findId')}>
+              <Text>아이디 찾기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/user/findPassword')}>
+              <Text>비밀번호 찾기</Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.formButton} onPress={submitLogin}>
@@ -138,10 +134,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-
-
-
-
-
-
