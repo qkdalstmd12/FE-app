@@ -1,5 +1,4 @@
 export { default as FeedbackAlarmList } from './FeedbackAlarmList';
-export { default as Overlay } from './Overlay';
 export { default as RunControlPanel } from './RunControlPanel';
 export { default as RunMapSection } from './RunMapSection';
 export { default as RunningFinishModal } from './RunningFinishModal';

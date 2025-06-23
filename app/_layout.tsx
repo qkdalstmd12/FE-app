@@ -7,7 +7,9 @@ export default function RootLayout() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
     </View>
   );
 }

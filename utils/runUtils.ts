@@ -1,10 +1,16 @@
 import { Coordinate } from '@/types/run-feedback/types';
 
 // pace와 targetPace는 number
-export function getPaceFeedback({ pace, targetPace }: { pace: number; targetPace: number }): string | null {
+export function getPaceFeedback({
+  pace,
+  targetPace,
+}: {
+  pace: number;
+  targetPace: number;
+}): { amount: number; message: string } | null {
   if (!pace || !targetPace) return null;
-  if (pace < targetPace - 0.5) return '페이스가 너무 빠릅니다!';
-  if (pace > targetPace + 0.5) return '페이스가 너무 느립니다!';
+  if (pace < targetPace - 0.5) return { amount: targetPace - pace, message: '페이스가 너무 빠릅니다!' };
+  if (pace > targetPace + 0.5) return { amount: pace - targetPace, message: '페이스가 너무 느립니다!' };
   return null;
 }
 
@@ -49,12 +55,12 @@ export function getStopFeedback({
   prevDistance: number;
   now: number;
   stopStartTimeRef: React.MutableRefObject<number | null>;
-}): string | null {
+}): { amount: number; message: string } | null {
   if (distance - prevDistance < 1) {
     if (!stopStartTimeRef.current) stopStartTimeRef.current = now;
     if (now - stopStartTimeRef.current > 30000) {
       const elapsedTime = formatTime((now - stopStartTimeRef.current) / 1000);
-      return `${elapsedTime}분 이상 멈춰 있습니다!`;
+      return { amount: Number(elapsedTime), message: `${elapsedTime}분 이상 멈춰 있습니다!` };
     }
   } else {
     stopStartTimeRef.current = null;
@@ -70,12 +76,12 @@ export function getEtaFeedback({
   now: number;
   remainingTime: number;
   targetTime: number;
-}): string | null {
+}): { amount: number; message: string } | null {
   if (!remainingTime || !targetTime) return null;
   const eta = formatTimeStamp(now) + remainingTime;
   if (eta > targetTime) {
     const over = formatTime(eta - targetTime);
-    return `목표 시간보다 약 ${over}분 늦을 수 있습니다!`;
+    return { amount: Number(over), message: `목표 시간보다 약 ${over}분 늦을 수 있습니다!` };
   }
   return null;
 }
@@ -85,10 +91,10 @@ export function calcDistance(loc1: Coordinate | null, loc2: Coordinate | null): 
   if (!loc1 || !loc2) return 0;
   const toRad = (value: number) => (value * Math.PI) / 180;
   const R = 6371000; // 지구 반지름(m)
-  const dLat = toRad(loc2.lat - loc1.lat);
-  const dLon = toRad(loc2.lon - loc1.lon);
-  const lat1 = toRad(loc1.lat);
-  const lat2 = toRad(loc2.lat);
+  const dLat = toRad(loc2.latitude - loc1.latitude);
+  const dLon = toRad(loc2.longitude - loc1.longitude);
+  const lat1 = toRad(loc1.latitude);
+  const lat2 = toRad(loc2.latitude);
 
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);

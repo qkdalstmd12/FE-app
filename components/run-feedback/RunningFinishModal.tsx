@@ -1,7 +1,7 @@
 import { Picker } from '@react-native-picker/picker';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Overlay from './Overlay';
+import Overlay from '../common/Overlay';
 
 interface RunningFinishModalProps {
   effortLevel: number | null;

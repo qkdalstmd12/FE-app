@@ -13,14 +13,17 @@ interface UseRunRecorderProps {
   targetPace: number;
   remainingTime: number;
   targetTime: number;
+  routeId: string;
 }
 
-const sendRunningState = async (record: RunRecord) => {
+const sendRunningState = async (record: RunRecord, routeId: string) => {
   try {
     if (!record) return;
-    await axios.post('/running/state', record);
+    console.log(record);
+    await axios.post(`/api/running/states/${routeId}`, record);
+    console.log('전송됨');
   } catch (err: any) {
-    console.error('실시간 전송 오류:', err.message);
+    console.error('실시간 전송 오류:', err);
   }
 };
 
@@ -33,6 +36,7 @@ function useRunRecorder({
   targetPace,
   remainingTime,
   targetTime,
+  routeId,
 }: UseRunRecorderProps) {
   const [currentFeedback, setCurrentFeedback] = useState<RunFeedback[]>([]);
   const { fullRecords, addRecord } = useRunStore();
@@ -75,55 +79,70 @@ function useRunRecorder({
   useEffect(() => {
     if (!isTracking) return;
 
+    const now = Date.now();
+    const paceFeedbackData = getPaceFeedback({
+      pace: paceRef.current,
+      targetPace: targetPaceRef.current,
+    });
+
+    const stopFeedbackData = getStopFeedback({
+      distance: distanceRef.current,
+      prevDistance: prevDistanceRef.current,
+      now,
+      stopStartTimeRef,
+    });
+
+    const etaFeedbackData = getEtaFeedback({
+      now,
+      remainingTime: remainingTimeRef.current,
+      targetTime: targetTimeRef.current,
+    });
+
     const interval = setInterval(() => {
       if (locationRef.current != null) {
-        const now = Date.now();
         const paceFeedback: RunFeedback = {
           timestamp: now,
           type: 'error',
           semiType: 'pace',
-          message: getPaceFeedback({
-            pace: paceRef.current,
-            targetPace: targetPaceRef.current,
-          }),
+          message: paceFeedbackData?.message ?? null,
         };
         const stopFeedback: RunFeedback = {
           timestamp: now,
           type: 'error',
           semiType: 'stop',
-          message: getStopFeedback({
-            distance: distanceRef.current,
-            prevDistance: prevDistanceRef.current,
-            now,
-            stopStartTimeRef,
-          }),
+          message: stopFeedbackData?.message ?? null,
         };
         const etaFeedback: RunFeedback = {
           timestamp: now,
           type: 'error',
           semiType: 'eta',
-          message: getEtaFeedback({
-            now,
-            remainingTime: remainingTimeRef.current,
-            targetTime: targetTimeRef.current,
-          }),
+          message: etaFeedbackData?.message ?? null,
         };
 
         const feedbacks: RunFeedback[] = [paceFeedback, stopFeedback, etaFeedback].filter(
           (item) => item.message != null,
         );
 
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const hours = Math.floor(elapsedTimeRef.current / 3600);
+        const minutes = Math.floor((elapsedTimeRef.current % 3600) / 60);
+        const seconds = elapsedTimeRef.current % 60;
+        const elapsedTimeStr = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
         const newRecord: RunRecord = {
-          timeStamp: now,
-          location: locationRef.current,
+          timestamp: new Date(now).toISOString(),
+          speed: 0,
+          coordinate: locationRef.current,
           distance: distanceRef.current,
           pace: paceRef.current,
-          elapsedTime: elapsedTimeRef.current,
-          feedbacks,
+          elapsedTime: elapsedTimeStr,
+          typePace: paceFeedbackData?.amount ?? 0,
+          typeEta: etaFeedbackData?.amount ?? 0,
+          typeStop: 0,
         };
 
         addRecord(newRecord); // zustand에 저장
-        sendRunningState(newRecord); // 실시간 전송
+        sendRunningState(newRecord, routeId); // 실시간 전송
 
         setCurrentFeedback(feedbacks);
         prevDistanceRef.current = distanceRef.current;

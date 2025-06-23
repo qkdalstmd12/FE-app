@@ -1,5 +1,7 @@
 // stores/types.ts
 
+import { Float } from 'react-native/Libraries/Types/CodegenTypes';
+
 export interface Coordinate {
   latitude: number;
   longitude: number;
@@ -13,12 +15,15 @@ export interface RunFeedback {
 }
 
 export interface RunRecord {
-  timeStamp: number;
-  location: Coordinate;
+  timestamp: any;
+  coordinate: Coordinate;
+  speed: number;
   distance: number;
   pace: number;
-  elapsedTime: number;
-  feedbacks: RunFeedback[];
+  elapsedTime: string;
+  typeEta: Float;
+  typePace: Float;
+  typeStop: Float;
 }
 
 export interface SettingState {

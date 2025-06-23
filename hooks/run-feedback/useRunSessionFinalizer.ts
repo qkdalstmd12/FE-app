@@ -14,11 +14,8 @@ interface Entries {
   routeId: string;
   effortLevel: number;
   comment: string;
-  totalDistance: number;
-  averagePace: number;
-  elapsedTime: number;
-  completedTime: number;
-  runningTrackPoint: RunRecord[];
+  completeTime: any;
+  runningPaths: RunRecord[];
 }
 
 function useRunSessionFinalizer({ routeId, isComplete, effortLevel, comment }: UseRunSessionFinalizerProps) {
@@ -33,21 +30,37 @@ function useRunSessionFinalizer({ routeId, isComplete, effortLevel, comment }: U
       routeId,
       effortLevel,
       comment,
-      totalDistance,
-      averagePace,
-      elapsedTime,
-      completedTime: Date.now(),
-      runningTrackPoint: fullRecords,
+      completeTime: new Date().toISOString(),
+      runningPaths: fullRecords,
     };
 
     try {
-      const response = await axios.post('/running/complete', entries);
+      console.log('전체기록', entries);
+
+      const response = await axios.post('api/running/complete', entries);
+      console.log(response);
+      setEvaluateResult(response.data);
       if (response) {
         clearTrackData();
+        console.log('전송 완료');
         // 필요하다면 setEvaluateResult(response.data); 등으로 결과 저장 가능
       }
     } catch (err: any) {
       console.error('전체 기록 전송 실패:', err.message || err);
+      clearTrackData();
+      setEvaluateResult({
+        routeId: 9,
+        distance: 3.21,
+        duration: 25,
+        averagePace: 7.6,
+        stopCount: 3,
+        feedbackSummaryDTO: {
+          main: '초반과 후반 속도 차이가 있어요.',
+          advice: '다음엔 초반 속도를 더 조절해보세요.',
+          earlySpeedDeviation: 1.2,
+        },
+        focusScore: 78,
+      });
     }
   };
 

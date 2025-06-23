@@ -2,23 +2,21 @@ import axios from '@/api/axios';
 import useSettingStore from '@/store/run-feedback/useSettingStore';
 import { UseRunSettingResult } from '@/types/run-feedback/types';
 import { formatTimeStamp } from '@/utils/runUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+
+const initStorage = async (key: string) => {
+  console.log('실행 왜 안되냐');
+  const data = await AsyncStorage.removeItem('run-strage');
+  // console.log('data', data);
+};
 
 export default function useRunSetting(routeId: string): UseRunSettingResult {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const {
-    routePoints,
-    destination,
-    origin,
-    targetPace,
-    targetTime,
-    routeId: storedRouteId,
-    setSettingData,
-  } = useSettingStore();
-
   useEffect(() => {
+    initStorage('setting-store');
     if (!routeId) {
       setError('경로 ID가 없습니다.');
       setLoading(false);
@@ -30,6 +28,16 @@ export default function useRunSetting(routeId: string): UseRunSettingResult {
     fetchSettings();
   }, [routeId]);
 
+  const {
+    routePoints,
+    destination,
+    origin,
+    targetPace,
+    targetTime,
+    routeId: storedRouteId,
+    setSettingData,
+  } = useSettingStore();
+
   const fetchSettings = async () => {
     const timestampMillis = new Date().getTime();
     formatTimeStamp(timestampMillis);
@@ -38,12 +46,11 @@ export default function useRunSetting(routeId: string): UseRunSettingResult {
       if (Number(routeId) === storedRouteId) {
         console.log(storedRouteId);
         setLoading(false);
-        return;
+        // return;
       }
 
-      const { data } = await axios.get(`/api/running-setting?routeId=${routeId}`);
-      console.log('data', data);
-
+      const { data } = await axios.get(`api/running-settings/${routeId}`);
+      console.log('fetch', data);
       const targetTime = formatTimeStamp(data.estimatedArrivalTime);
       const startTime = formatTimeStamp(data.startTime);
 
@@ -63,11 +70,6 @@ export default function useRunSetting(routeId: string): UseRunSettingResult {
       console.log(err);
     }
   };
-
-  useEffect(() => {
-    // 디버깅용: 스토어 상태 확인
-    // console.log('스토어 현재 상태:', useSettingStore.getState());
-  }, []);
 
   return {
     routePoints,

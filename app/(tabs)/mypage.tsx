@@ -1,6 +1,7 @@
 import axios from '@/api/axios';
 import { RunMapSection } from '@/components/run-feedback';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -58,12 +59,11 @@ const MyPage: React.FC = () => {
   const [historyData, setHistoryData] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<HistoryAnalysis | null>(null);
 
-  const fetchProfile = async () => {
+  const fetchHistory = async () => {
     const todayFormat = getDateFormat('date', DateFormatter.default);
 
     try {
       const { data } = await axios.get(`api/history/daily?userId=${1}&date=${todayFormat}`);
-      // console.log(data);
       console.log(data.length);
       setHistoryData(data.runningSessionDTO);
       setAnalysisData(data);
@@ -72,43 +72,49 @@ const MyPage: React.FC = () => {
     } catch {}
   };
 
+  const fetchProfile = async () => {
+    try {
+      const { data } = await axios.get(`api/profile`);
+      setProfileData(data);
+    } catch {}
+  };
+
   useEffect(() => {
+    fetchHistory();
     fetchProfile();
     console.log('fetch');
   }, []);
   const data = [
     {
       title: '총 거리',
-      value: analysisData?.totalDistance.toFixed(2),
+      value: analysisData?.totalDistance.toFixed(2) ?? 0,
     },
     {
       title: '총 러닝 횟수',
-      value: analysisData?.runCount,
+      value: analysisData?.runCount ?? 0,
     },
     {
       title: '평균 페이스',
-      value: analysisData?.avgSpeed.toFixed(2),
+      value: analysisData?.avgSpeed.toFixed(2) ?? 0,
     },
     {
       title: '총 러닝 시간',
-      value: analysisData?.totalRunTime,
+      value: analysisData?.totalRunTime ?? 0,
     },
   ];
   return (
     <ScrollView>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>나의 기록</Text>
+      </View>
       <View style={styles.container}>
-        {/* 상단 헤더 */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>나의 기록</Text>
-        </View>
-
         {/* 프로필 영역 */}
         <View style={styles.profileSection}>
           <Image source={profileImg} style={styles.profileImg} />
           <View style={styles.profileInfo}>
-            <Text style={styles.levelText}>{'러닝 레벨'}</Text>
-            <Text style={styles.profileName}>{'유진'}</Text>
-            <Text style={styles.profileEmail}>{'yujin09219@naver.com'}</Text>
+            <Text style={styles.levelText}>{profileData?.runningType ?? '러닝 타입'}</Text>
+            <Text style={styles.profileName}>{profileData?.nickName ?? '이름'}</Text>
+            <Text style={styles.profileEmail}>{profileData?.name}</Text>
           </View>
         </View>
 
@@ -118,22 +124,22 @@ const MyPage: React.FC = () => {
           <View style={styles.distanceSection}>
             <View>
               <Text style={styles.defaultText}>오늘은</Text>
-              <Text style={styles.distanceText}>{analysisData?.distanceDiff.toFixed(2)}km</Text>
+              <Text style={styles.distanceText}>{analysisData?.distanceDiff.toFixed(2) ?? 0}km</Text>
               <Text style={styles.defaultText}>달리셨네요</Text>
             </View>
             <View style={styles.increaseDistance}>
               <FontAwesome5 name="arrow-circle-up" size={24} color={'#0084FF'} />
-              <Text style={styles.increateDistanceText}>{analysisData?.distanceDiff.toFixed(0)}km</Text>
+              <Text style={styles.increateDistanceText}>{analysisData?.distanceDiff.toFixed(0) ?? 0}km</Text>
             </View>
           </View>
         </View>
 
         {/* 네비게이션 바 */}
         <View style={styles.navigationSection}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/mypage/calendar')}>
             <Text style={styles.navigationText}>러닝 캘린더</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/mypage/summary')}>
             <Text style={styles.navigationText}>러닝 리포트</Text>
           </TouchableOpacity>
         </View>
@@ -186,10 +192,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginTop: 10,
-    gap: 20,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
     width: '100%',
+  },
+  backButton: {
+    paddingRight: 10,
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold' },
   profileSection: { width: '100%', alignItems: 'center', marginVertical: 18, flexDirection: 'row', gap: 30 },
