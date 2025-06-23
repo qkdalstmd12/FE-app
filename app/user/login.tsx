@@ -106,4 +106,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
+  formButton: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 6,
+    backgroundColor: '#414B61',
+    padding: 20,
+    marginTop: 20,
+  },
+  formButtonText: {
+    color: 'white',
+  },
 });

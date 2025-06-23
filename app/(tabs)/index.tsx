@@ -22,6 +22,7 @@ export default function MainScreen() {
             latitude,
             longitude,
           })),
+
           feature: r.selected_path?.feature ?? {
             park: { count: 0 },
             river: { count: 0 },

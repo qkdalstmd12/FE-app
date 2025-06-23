@@ -43,7 +43,6 @@ function useRunSessionFinalizer({ routeId, isComplete, effortLevel, comment }: U
       if (response) {
         clearTrackData();
         console.log('전송 완료');
-        // 필요하다면 setEvaluateResult(response.data); 등으로 결과 저장 가능
       }
     } catch (err: any) {
       console.error('전체 기록 전송 실패:', err.message || err);

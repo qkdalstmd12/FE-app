@@ -1,6 +1,5 @@
-import { Picker } from '@react-native-picker/picker';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Overlay from '../common/Overlay';
 
 interface RunningFinishModalProps {
@@ -28,24 +27,27 @@ const RunningFinishModal: React.FC<RunningFinishModalProps> = ({
   remainingDistance,
   onClose,
 }) => {
+  const primaryColor = getPrimaryColor(remainingDistance);
+  const secondColor = getSecondColor(remainingDistance);
+  const textColor = getTextColor(remainingDistance);
+
+  // 커스텀 드롭다운 열림 여부
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
     <Overlay>
-      <View style={[styles.modalBox, { borderColor: getPrimaryColor(remainingDistance) }]}>
-        <Text style={[styles.title, { color: getTextColor(remainingDistance) }]}>
+      <View style={[styles.modalBox, { borderColor: primaryColor }]}>
+        <Text style={[styles.title, { color: textColor }]}>
           {remainingDistance < 100 ? '러닝 완료' : '러닝 중도 완료'}
         </Text>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 러닝 만족도를 선택해주세요</Text>
           <View style={styles.levelRow}>
             {[1, 2, 3, 4, 5].map((number) => (
               <TouchableOpacity
                 key={number}
-                style={[
-                  styles.levelButton,
-                  effortLevel === number && {
-                    backgroundColor: getPrimaryColor(remainingDistance),
-                  },
-                ]}
+                style={[styles.levelButton, effortLevel === number && { backgroundColor: primaryColor }]}
                 onPress={() => setEffortLevel(number)}
               >
                 <Text style={[styles.levelButtonText, effortLevel === number && { color: '#fff' }]}>{number}</Text>
@@ -53,33 +55,40 @@ const RunningFinishModal: React.FC<RunningFinishModalProps> = ({
             ))}
           </View>
         </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘 러닝은 어떠셨나요?</Text>
-          {/* iOS와 Android에서 Picker UI가 다름 */}
-          <View style={styles.pickerWrap}>
-            <Picker
-              selectedValue={comment}
-              onValueChange={(value: any) => setComment(value)}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {commentValue.map((option) => (
-                <Picker.Item key={option} label={option} value={option} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-        <View style={styles.buttonRow}>
           <TouchableOpacity
-            onPress={onClose}
-            style={[styles.actionButton, { backgroundColor: getSecondColor(remainingDistance) }]}
+            style={[styles.dropdownToggle, { borderColor: primaryColor }]}
+            onPress={() => setDropdownOpen(!dropdownOpen)}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.actionButtonText, { color: getTextColor(remainingDistance) }]}>닫기</Text>
+            <Text style={{ color: comment ? '#222' : '#999' }}>{comment || '선택해주세요'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={setComplete}
-            style={[styles.actionButton, { backgroundColor: getPrimaryColor(remainingDistance) }]}
-          >
+
+          {dropdownOpen && (
+            <ScrollView style={[styles.dropdownList, { borderColor: primaryColor }]} nestedScrollEnabled>
+              {commentValue.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setComment(item);
+                    setDropdownOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity onPress={onClose} style={[styles.actionButton, { backgroundColor: secondColor }]}>
+            <Text style={[styles.actionButtonText, { color: textColor }]}>닫기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={setComplete} style={[styles.actionButton, { backgroundColor: primaryColor }]}>
             <Text style={[styles.actionButtonText, { color: '#fff' }]}>러닝 완료</Text>
           </TouchableOpacity>
         </View>
@@ -132,19 +141,27 @@ const styles = StyleSheet.create({
     color: '#222',
     fontWeight: 'bold',
   },
-  pickerWrap: {
+  dropdownToggle: {
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
-    overflow: 'hidden',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  dropdownList: {
+    maxHeight: 120,
     marginTop: 8,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
-  picker: {
-    width: '100%',
-    height: 44,
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  pickerItem: {
-    fontSize: 15,
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#222',
   },
   buttonRow: {
     flexDirection: 'row',

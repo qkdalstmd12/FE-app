@@ -21,6 +21,13 @@ function MainPage() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        onPress={() => {
+          router.push('/run?routeId=10');
+        }}
+      >
+        <Text>러닝</Text>
+      </TouchableOpacity>
       <View style={styles.logoHeader}>
         <View style={styles.header}>
           <Text style={styles.LogoText}>Runnify</Text>
