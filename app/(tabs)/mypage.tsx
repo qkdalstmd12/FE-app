@@ -64,7 +64,7 @@ const MyPage: React.FC = () => {
 
     try {
       const { data } = await axios.get(`api/history/daily?userId=${1}&date=${todayFormat}`);
-      console.log(data.length);
+      console.log('profile fetch', data);
       setHistoryData(data.runningSessionDTO);
       setAnalysisData(data);
       console.log(data.runningSessionDTO.length);

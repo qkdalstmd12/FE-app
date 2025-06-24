@@ -65,7 +65,7 @@ function MainPage() {
               >
                 <Text>로그아웃</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/user/login')} style={styles.loginButton}>
+              <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.loginButton}>
                 <Text>홈으로 이동</Text>
               </TouchableOpacity>
             </View>

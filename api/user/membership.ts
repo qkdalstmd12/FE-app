@@ -110,10 +110,10 @@ export const runnifyloginUser = async (email: string, password: string) => {
   try {
     const response = await axios.post('/api/login', { email, password });
     const token = response.data?.token;
-    console.log(token);
+    console.log('login', token);
 
     if (token) {
-      saveToken(token);
+      await saveToken(token);
     } else {
       throw new Error('토큰이 응답에 포함되지 않았습니다.');
     }

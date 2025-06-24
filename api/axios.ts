@@ -2,7 +2,7 @@ import { getToken } from '@/utils/auth';
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'https://895a-58-237-125-70.ngrok-free.app/',
+  baseURL: 'https://f26b-58-237-125-70.ngrok-free.app',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,7 +10,8 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   async (config) => {
-    const token = getToken();
+    const token = await getToken();
+    console.log('axios', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
