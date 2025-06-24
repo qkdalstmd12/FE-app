@@ -19,9 +19,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="mypage"
+        name="routine"
         options={{
-          title: 'MY',
+          title: 'routine',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24} />
           ),
@@ -31,6 +31,15 @@ export default function TabLayout() {
         name="setting"
         options={{
           title: 'setting',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="mypage"
+        options={{
+          title: 'MY',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24} />
           ),

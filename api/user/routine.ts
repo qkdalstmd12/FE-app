@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../axios';
 
 const titleToPlaceEnum = (title: string) => {
   const map: { [key: string]: string } = {
@@ -47,9 +47,9 @@ export const updateRoutine = async (
 export const getRoutineList = async () => {
   try {
     const response = await axios.get('/api/routines-list', {});
-    return response.data;
+    return response.data.data;
   } catch (error: any) {
-    console.error('루틴 조회 실패:', error.response?.data || error.message);
+    console.error('루틴 조회 실패:', error, error.response?.data || error.message);
     throw error.response?.data || { message: '루틴 조회 실패' };
   }
 };

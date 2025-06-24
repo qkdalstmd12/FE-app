@@ -53,11 +53,10 @@ export default function AddRouteScreen() {
       const end_point = end ? await geocodeAddress(end) : undefined;
 
       const preferences = {
-        loop,
-        run_type: '일반 러닝',
+        cycle: loop,
         park_ratio_preference: flatPath ? 1.0 : 0.5,
-        public_transport: publicTransport,
-        not_crowded: notCrowded,
+        usePublicTransport: publicTransport,
+        avoidCrowdedAreas: notCrowded,
       };
 
       const environment = {
@@ -66,12 +65,11 @@ export default function AddRouteScreen() {
         weather: 'cloudy',
       };
 
-      const endpoint = end_point ? '/api/route/recommend/new' : '/api/route/recommend/free';
       const payload = end_point
-        ? { start_point, end_point, preferences, environment, run_ratio: 1.0, user_running_history: [] }
+        ? { start_point, end_point, ...preferences, environment, run_ratio: 1.0, user_running_history: [] }
         : { start_point, preferences, environment, run_ratio: 1.0 };
 
-      const response = await axios.post(endpoint, payload);
+      const response = await axios.post('/api/routes-create', payload);
 
       const { duration: d, coordinates: rawCoords } = response.data;
       const routeCoords = rawCoords?.map((c: any) => ({

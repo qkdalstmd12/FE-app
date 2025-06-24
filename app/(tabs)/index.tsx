@@ -10,11 +10,10 @@ export default function MainScreen() {
   useEffect(() => {
     const loadRoutes = async () => {
       try {
-        const res = await axios.get('/api/route/routes-list', {});
-
+        const res = await axios.get('/api/routes-list', {});
         console.log('[오늘의 루트 응답]', res.data);
 
-        const mappedRoutes = res.data.map((r: any, idx: number) => ({
+        const mappedRoutes = res?.data?.data?.map((r: any, idx: number) => ({
           id: r.route_id ?? idx,
           name: `${r?.startPoint ?? '출발지'} → ${r?.endPoint ?? '도착지'}`,
           duration: r.selected_path?.recommend?.expected_time ?? 0,
@@ -73,9 +72,6 @@ export default function MainScreen() {
               ) : null
             }
           />
-          <TouchableOpacity style={styles.addButton} onPress={() => router.push('/route/add')}>
-            <Text style={styles.addButtonText}>러닝 경로 추가</Text>
-          </TouchableOpacity>
         </>
       )}
     </View>

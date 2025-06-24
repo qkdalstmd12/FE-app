@@ -1,5 +1,6 @@
 import axios from '@/api/axios';
 import { useRouteStore } from '@/store/routeStore';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,34 +11,24 @@ export default function EditRouteScreen() {
 
   const { selectNewRoute, todayRoutes } = useRouteStore();
   const [candidateRoutes, setCandidateRoutes] = useState<any[]>([]);
+  const [selectedPath, setSelectedPath] = useState<number | null>(null);
 
   useEffect(() => {
     const loadCandidateRoutes = async () => {
       try {
-        const res = await axios.get('/api/route/fixed/recommended', {
-          params: {
-            user_id: 'user_123',
-            fixed_route_id: routeId,
-          },
-        });
-
-        console.log('🟢 추천 경로 응답:', res.data);
-
-        const routeList = Array.isArray(res.data) ? res.data : (res.data?.[routeId] ?? []);
-
-        if (!Array.isArray(routeList)) {
-          throw new Error('후보 경로 없음 또는 데이터 형식 오류');
-        }
+        const res = await axios.get(`/api/routes-one/${routeId}`, {});
+        const data = res?.data?.data;
+        const routeList = data.paths;
 
         const mapped = routeList.map((r: any, idx: number) => ({
-          id: r.route_id ?? idx,
+          id: r.route_id ?? r.pathId ?? idx,
           name: r.custom_name ?? `후보 루트 ${idx + 1}`,
           duration: r.duration ?? r.recommend?.expected_time ?? 0,
           coordinates: Array.isArray(r.coordinates)
             ? r.coordinates
             : Array.isArray(r.coord)
               ? r.coord
-                  .map((point: any) => {
+                  .map((point) => {
                     if (Array.isArray(point)) {
                       const [lat, lng] = point;
                       return { latitude: lat, longitude: lng };
@@ -49,8 +40,7 @@ export default function EditRouteScreen() {
                   })
                   .filter(Boolean)
               : [],
-
-          feature: r.feature ?? {
+          feature: r.feture ?? {
             park: { count: 0 },
             river: { count: 0 },
             amenity: { count: 0 },
@@ -59,6 +49,7 @@ export default function EditRouteScreen() {
         }));
 
         setCandidateRoutes(mapped);
+        setSelectedPath(data.selectedPath);
       } catch (err) {
         console.error('추천 경로 불러오기 실패:', err);
         Alert.alert('오류', '추천 경로를 불러오지 못했습니다.');
@@ -70,22 +61,12 @@ export default function EditRouteScreen() {
     }
   }, [routeId]);
 
-  const handleSelect = async (newRouteId: number) => {
-    const oldRoute = todayRoutes.find((r) => r.id === Number(routeId));
-    const newRoute = candidateRoutes.find((r) => r.id === newRouteId);
-
-    if (!newRoute || !oldRoute) return;
-
+  const handleSelect = async (pathId: any) => {
+    if (pathId == undefined) return;
     try {
-      await axios.post('/api/route/save', null, {
-        params: {
-          user_id: 'user_123',
-          route_id: newRouteId,
-          custom_name: oldRoute.name,
-        },
-      });
-
-      selectNewRoute(Number(routeId), newRoute);
+      console.log(`/api/${routeId}/select-path/${pathId}`);
+      await axios.patch(`/api/${routeId}/select-path/${pathId}`);
+      console.log('수정 완료');
       Alert.alert('수정 완료', '경로가 성공적으로 변경되었습니다!');
       router.back();
     } catch (error) {
@@ -96,42 +77,63 @@ export default function EditRouteScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>추천 경로 목록</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>경로 추가</Text>
+      </View>
       <FlatList
         data={candidateRoutes}
         keyExtractor={(item) => item?.id?.toString() ?? Math.random().toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => handleSelect(item.id)}>
-            <Text style={styles.routeName}>{item.name}</Text>
-            <Text style={styles.routeTime}>{item.duration}분 소요</Text>
+        renderItem={({ item }) => {
+          const isSelected = item.id === selectedPath;
+          return (
+            <TouchableOpacity
+              style={[
+                styles.item,
+                isSelected && styles.selectedItem, // 선택된 경로 스타일 적용
+              ]}
+              onPress={() => handleSelect(item.id)}
+              activeOpacity={isSelected ? 1 : 0.7} // 선택된 경로는 클릭 비활성화
+              disabled={isSelected} // 선택된 경로는 클릭 불가
+            >
+              <View style={styles.routeHeader}>
+                <Text style={[styles.routeName, isSelected && styles.selectedRouteName]}>
+                  {isSelected ? '선택된 경로' : item.name}
+                </Text>
+                {isSelected && <Ionicons name="checkmark-circle" size={20} color="#2563eb" style={{ marginLeft: 6 }} />}
+              </View>
+              <Text style={styles.routeTime}>{item.duration}분 소요</Text>
 
-            {item.coordinates.length > 0 && (
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: item.coordinates[0].latitude,
-                  longitude: item.coordinates[0].longitude,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-              >
-                <Polyline coordinates={item.coordinates} strokeColor="#3B82F6" strokeWidth={4} />
-                <Marker coordinate={item.coordinates[0]} title="출발" />
-                <Marker coordinate={item.coordinates[item.coordinates.length - 1]} title="도착" />
-              </MapView>
-            )}
+              {item.coordinates.length > 0 && (
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: item.coordinates[0].latitude,
+                    longitude: item.coordinates[0].longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                >
+                  <Polyline coordinates={item.coordinates} strokeColor="#3B82F6" strokeWidth={4} />
+                  <Marker coordinate={item.coordinates[0]} title="출발" />
+                  <Marker coordinate={item.coordinates[item.coordinates.length - 1]} title="도착" />
+                </MapView>
+              )}
 
-            {/* Feature Info */}
-            <View style={styles.featureBox}>
-              <Text> 공원: {item.feature?.park?.count ?? 0}</Text>
-              <Text> 하천: {item.feature?.river?.count ?? 0}</Text>
-              <Text> 편의시설: {item.feature?.amenity?.count ?? 0}</Text>
-              <Text> 횡단보도: {item.feature?.cross?.count ?? 0}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+              {/* Feature Info */}
+              <View style={styles.featureBox}>
+                <Text> 공원: {item.feature?.park?.count ?? 0}개</Text>
+                <Text> 하천: {item.feature?.river?.count ?? 0}개</Text>
+                <Text> 편의시설: {item.feature?.amenity?.count ?? 0}개</Text>
+                <Text> 횡단보도: {item.feature?.cross?.count ?? 0}개</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={<Text style={{ color: '#666' }}>추천 경로가 없습니다.</Text>}
       />
     </View>
@@ -144,11 +146,16 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
+  backButton: { paddingRight: 10 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
   item: {
     padding: 16,
     borderWidth: 1,
