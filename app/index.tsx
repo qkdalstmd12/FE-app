@@ -1,80 +1,11 @@
-import { getToken, removeToken } from '@/utils/auth';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
-export default function Index() {
-  return <MainPage />;
-}
-
-function MainPage() {
-  const [isLogged, setIsLogged] = useState(false);
-
-  useEffect(() => {
-    const checkLogin = async () => {
-      const token = await getToken();
-      console.log('token', token);
-      setIsLogged(!!token);
-    };
-    checkLogin();
-  }, []);
-
+export default function Page() {
   return (
     <View style={styles.container}>
-      <View style={styles.logoHeader}>
-        <View style={styles.header}>
-          <Text style={styles.LogoText}>Runnify</Text>
-          <Text style={styles.summaryText}>당신의 일상에 걸음을</Text>
-        </View>
-        <View style={styles.taglist}>
-          <View style={styles.tag}>
-            <Text>#런닝메이트</Text>
-          </View>
-          <View style={styles.tag}>
-            <Text>#러닝루트</Text>
-          </View>
-          <View style={styles.tag}>
-            <Text>#달리기습관</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.bottomSection}>
-        <View style={{ width: '100%' }}>
-          {!isLogged ? (
-            <View style={{ flexDirection: 'row', width: '90%', gap: 10 }}>
-              <TouchableOpacity onPress={() => router.push('/user/login')} style={styles.loginButton}>
-                <Text>로그인</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <TouchableOpacity
-                onPress={() => {
-                  removeToken();
-                  setIsLogged(false);
-                }}
-                style={styles.loginButton}
-              >
-                <Text>로그아웃</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.loginButton}>
-                <Text>홈으로 이동</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-        <View style={styles.formAlter}>
-          <TouchableOpacity onPress={() => router.push('/user/membership')}>
-            <Text>회원가입</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/user/findId')}>
-            <Text>아이디 찾기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/user/findPassword')}>
-            <Text>비밀번호 찾기</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.main}>
+        <Text style={styles.title}>Hello World</Text>
+        <Text style={styles.subtitle}>This is the first page of your app.</Text>
       </View>
     </View>
   );
@@ -82,64 +13,22 @@ function MainPage() {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'column',
-    gap: 100,
-    alignItems: 'center',
-    height: '100%',
-    justifyContent: 'center',
-  },
-  header: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  logoHeader: {
-    flexDirection: 'column',
-    gap: 10,
-  },
-  taglist: {
-    flexDirection: 'row',
-    gap: 5,
-  },
-  tag: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 8,
-  },
-  LogoText: {
-    fontSize: 65,
-  },
-  summaryText: {
-    fontSize: 35,
-  },
-  loginButton: {
-    borderRadius: 6,
-    backgroundColor: '#E2DFD8',
-    borderWidth: 1,
-    padding: 18,
-    alignItems: 'center',
     flex: 1,
+    alignItems: "center",
+    padding: 24,
   },
-  formAlter: {
-    flexDirection: 'row',
-    gap: 15,
+  main: {
+    flex: 1,
+    justifyContent: "center",
+    maxWidth: 960,
+    marginHorizontal: "auto",
   },
-  formButton: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
-    backgroundColor: '#414B61',
-    padding: 20,
+  title: {
+    fontSize: 64,
+    fontWeight: "bold",
   },
-  formButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  bottomSection: {
-    flexDirection: 'column',
-    gap: 10,
-    justifyContent: 'flex-end',
+  subtitle: {
+    fontSize: 36,
+    color: "#38434D",
   },
 });
