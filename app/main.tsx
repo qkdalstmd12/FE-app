@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function Index() {
+export default function Main() {
   return <MainPage />;
 }
 
@@ -11,6 +11,7 @@ function MainPage() {
   const [isLogged, setIsLogged] = useState(false);
 
   useEffect(() => {
+    console.log("루트로 왔음");
     const checkLogin = async () => {
       const token = await getToken();
       console.log('token', token);

@@ -2,7 +2,7 @@ import { getToken } from '@/utils/auth';
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'https://f26b-58-237-125-70.ngrok-free.app',
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
