@@ -11,7 +11,6 @@ export default function Main() {
 function MainPage() {
   const checkLogin = async () => {
     const token = await getToken();
-    console.log('token', token);
     if (!!token) router.push('/home');
     return !!token;
   };
