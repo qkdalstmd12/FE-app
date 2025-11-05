@@ -11,7 +11,11 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/lemon": "^0.4.2",
+    "@expo-google-fonts/noto-sans-kr": "^0.4.2",
     "@expo/vector-icons": "^14.1.0",
+    "@gorhom/bottom-sheet": "^5.2.6",
     "@mapbox/polyline": "^1.2.1",
     "@react-google-maps/api": "^2.20.6",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -20,7 +24,7 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.14",
     "axios": "^1.10.0",
-    "expo": "~53.0.9",
+    "expo": "54.0.21",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.6",
     "expo-dev-client": "~5.2.4",
@@ -43,6 +47,7 @@
     "react-native-calendars": "^1.1312.1",
     "react-native-chart-kit": "^6.12.0",
     "react-native-dotenv": "^3.4.11",
+    "react-native-dropdown-picker": "^5.4.6",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-maps": "1.20.1",

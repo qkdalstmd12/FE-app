@@ -16,7 +16,7 @@ export const createRoutine = async (routine: { place: string; destination: strin
     console.log(routine);
     routine['place'] = titleToPlaceEnum(routine['place']);
     console.log(routine);
-    const response = await axios.post('/api/routines-create', routine);
+    const response = await axios.post('/routines-create', routine);
     return response.data;
   } catch (error: any) {
     console.error('루틴 생성 실패:', error.response?.data || error.message);
@@ -35,7 +35,7 @@ export const updateRoutine = async (
   },
 ) => {
   try {
-    const response = await axios.put(`/api/routines-update/${routineId}`, routine);
+    const response = await axios.put(`/routines-update/${routineId}`, routine);
     return response.data;
   } catch (error: any) {
     console.error('루틴 수정 실패:', error.response?.data || error.message);
@@ -46,10 +46,9 @@ export const updateRoutine = async (
 // 루틴 목록 조회
 export const getRoutineList = async () => {
   try {
-    const response = await axios.get('/api/routines-list', {});
+    const response = await axios.get('/routines-list', {});
     return response.data.data;
   } catch (error: any) {
-    console.error('루틴 조회 실패:', error, error.response?.data || error.message);
     throw error.response?.data || { message: '루틴 조회 실패' };
   }
 };
@@ -57,7 +56,7 @@ export const getRoutineList = async () => {
 // 루틴 삭제
 export const deleteRoutine = async (routineId: number) => {
   try {
-    await axios.delete(`/api/routines-delete/${routineId}`);
+    await axios.delete(`/routines-delete/${routineId}`);
     return { message: '루틴 삭제 성공' };
   } catch (error: any) {
     console.error('루틴 삭제 실패:', error.response?.data || error.message);

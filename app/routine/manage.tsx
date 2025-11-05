@@ -44,13 +44,11 @@ export default function RoutineListScreen() {
       const filteredData = routineData.filter((routine: { day: string | string[] }) =>
         routine.day.includes(todayString),
       );
-      setRoutineData(filteredData);
+      setRoutineData(data);
+      console.log(data);
       console.log(data);
     } catch (error) {
-      const filteredData = routineDummy.filter((routine: { day: string | string[] }) =>
-        routine.day.includes(todayString),
-      );
-      setRoutineData(filteredData);
+      setRoutineData([]);
     }
   };
   useEffect(() => {
@@ -59,6 +57,9 @@ export default function RoutineListScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>오늘의 루틴</Text>
+      <View>
+        <Text>전체</Text>
+      </View>
       <FlatList
         data={routineData}
         keyExtractor={(item) => item.routineId.toString()}
@@ -118,48 +119,3 @@ const styles = StyleSheet.create({
     color: '#aaa',
   },
 });
-
-const routineDummy = [
-  {
-    routineId: 9,
-    place: 'COMPANY',
-    destination: 'string',
-    time: '23:20',
-    day: ['MONDAY'],
-  },
-  {
-    routineId: 10,
-    place: 'COMPANY',
-    destination: 'string',
-    time: '17:14',
-    day: ['MONDAY'],
-  },
-  {
-    routineId: 12,
-    place: 'COMPANY',
-    destination: 'string',
-    time: '21:05',
-    day: ['MONDAY'],
-  },
-  {
-    routineId: 13,
-    place: 'COMPANY',
-    destination: 'string',
-    time: '21:05',
-    day: ['MONDAY'],
-  },
-  {
-    routineId: 14,
-    place: 'COMPANY',
-    destination: 'dx',
-    time: '09:00',
-    day: ['TUESDAY', 'WEDNESDAY'],
-  },
-  {
-    routineId: 15,
-    place: 'GYM',
-    destination: 'Erre',
-    time: '12:00',
-    day: ['THURSDAY', 'FRIDAY'],
-  },
-];

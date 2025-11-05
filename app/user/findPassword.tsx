@@ -1,133 +1,116 @@
-import { findUserEmail } from '@/api/user/membership';
-import { router } from 'expo-router';
+// 내부 함수 호출
+import { confirmResetPassword, sendResetPasswordCode } from '@/api/auth';
+import { useFormStateManager } from '@/hooks/common';
+import { findPasswordFields, FindPasswordField } from '@/types/auth';
+import { FormPage, FormFieldType, FormContent, FormField } from '@/components/common';
+
+// 리액트 라이브러리
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 
+export default function FindPasswordPage() {
+  const [emailPending, setEmailPending] = useState(false);
+  const { states, changeStates, resetStates } = useFormStateManager<FindPasswordField>(findPasswordFields);
 
-export default function LoginPage() {
-    const [nickName,setNickName] = useState<string>("");
-    const [runningType,setRunningType] = useState<string>("");
-    const [email,setEmail] = useState<string>("");
-    const [error,setError] = useState<boolean>(false);
+  // form 유효성 검사 함수
+  const handleValidateForm = () => {
+    console.log('validate 실행');
+    let hasError = false;
+    const errorStatus: [string, boolean] = ['status', false];
 
-    const findId = async(e: any) => {
-        e.preventDefult();
-        try {
-        const response = await findUserEmail(nickName,runningType);
-        setEmail(response)
-
-        router.push('/')
-        } catch (error) {
-            console.log(error)
-        }
+    console.log(!states['email_validation']['value']);
+    if (!states['email_validation']['value']) {
+      hasError = true;
+      changeStates('email_validation', [errorStatus, ['message', '인증번호를 입력해주세요']]);
     }
+    console.log('통과');
+
+    if (
+      states['newPassword']['value'] &&
+      !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+~\-={}[\]:;"\'<>,.?/]).{8,15}$/.test(states['newPassword']['value'])
+    ) {
+      hasError = true;
+      changeStates('newPassword', [errorStatus, ['message', '비밀번호: 영문+숫자+특수문자 8~15자']]);
+    }
+    console.log('has Error : ', !hasError);
+    return !hasError;
+  };
+
+  // 이메일 인증코드 발송
+  const handleSendEmailCode = async () => {
+    const email = states['email']['value'];
+    if (!email) {
+      changeStates('email', [
+        ['status', false],
+        ['message', '이메일을 입력해주세요'],
+      ]);
+      return;
+    }
+    try {
+      await sendResetPasswordCode(email);
+      changeStates('email', [
+        ['status', true],
+        ['message', '이메일 발송이 완료되었습니다.'],
+      ]);
+      setEmailPending(true);
+    } catch (e: any) {
+      changeStates('email', [
+        ['status', false],
+        ['message', e.message ?? '이메일 발송에 실패하였습니다.'],
+      ]);
+    }
+  };
+
+  // 비밀번호 재설정
+  const handleSetNewPassword = async () => {
+    if (!handleValidateForm()) {
+      return;
+    }
+    try {
+      await confirmResetPassword(states['email_validation']['value'], states['newPassword']['value']);
+      router.replace('/main');
+    } catch (e: any) {
+      changeStates('form', [
+        ['status', false],
+        ['message', e.message ?? '비밀번호 재설정 중 오류가 발생하였습니다.'],
+      ]);
+    }
+  };
+
   return (
-    <View style={styles.overlay}>
-        <View style={styles.formContainer}>
-            <View style={styles.formHeader}>
-                <TouchableOpacity onPress={()=>router.back()}><Text style={styles.headerText}>{"<"}</Text></TouchableOpacity>
-                    <Text style={styles.headerText}>Runnify로 로그인</Text>
-            </View>
-            <View style={styles.formContent}>
-            <View style={styles.formLabel}>
-                <Text style={styles.inputLabelText}>닉네임</Text>
-            <TextInput
-            style={styles.formInput}
-            placeholder="닉네임을 입력하세요"
-            value={nickName}
-            onChangeText={setNickName}
-            />
-            </View>
-            <View style={styles.formLabel}>
-                <Text style={styles.inputLabelText}>러닝 타입</Text>
-            <TextInput
-            style={styles.formInput}
-            placeholder="여기에 입력하세요"
-            value={runningType}
-            onChangeText={setRunningType}
-            />
-            </View>
-            <View style={styles.formAlter}>
-            <TouchableOpacity onPress={()=>router.push("/user/membership")}>
-            <Text>회원가입</Text>
-            </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push("/user/findId")}>
-        <Text>로그인</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push("/user/findPassword")}>
-        <Text>비밀번호 찾기</Text>
-        </TouchableOpacity>
-            </View>
-            <Text>email:{email}</Text>
-            <View>
-                <TouchableOpacity style={styles.formButton} onPress={findId}><Text style={styles.formButtonText}>로그인하기</Text></TouchableOpacity>
-            </View>
-            </View>
-        </View>
-    </View>
-  )
+    <FormPage submit={handleSetNewPassword} title={'비밀번호 재설정'} reset={resetStates} submitText={'재설정'}>
+      <FormContent
+        states={states}
+        handleSubmitForm={handleSetNewPassword}
+        handleResetForm={resetStates}
+        handleChangeValue={changeStates}
+        submitText={'가입'}
+      >
+        {/* 이메일 */}
+        <FormField
+          label={'이메일'}
+          fieldKey={'email'}
+          placeholder={'이메일을 입력해주세요'}
+          onButtonPress={handleSendEmailCode}
+          buttonText={`${emailPending ? '재' : ''} 전송`}
+          messageVisible={!states['email']['status'] || emailPending}
+          type={FormFieldType.input}
+        />
+        {/* 이메일 인증코드 */}
+        <FormField
+          label={'이메일 인증코드'}
+          placeholder={'이메일 인증번호를 입력해주세요'}
+          type={FormFieldType.input}
+          fieldKey={'email_validation'}
+        />
+        {/* 비밀번호 */}
+        <FormField
+          type={FormFieldType.input}
+          label={'새 비밀번호'}
+          fieldKey={'newPassword'}
+          placeholder={'변경할 비밀번호를 입력해주세요'}
+        />
+      </FormContent>
+    </FormPage>
+  );
 }
-
-const styles = StyleSheet.create({
-    overlay : {
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        width:'100%',
-        height:'100%',
-        justifyContent:'center',
-        alignItems:'center',
-    },
-    formContainer : {
-        borderRadius:21,
-        width:'90%',
-        flexDirection: 'column',
-        backgroundColor:'white',
-        justifyContent:'center',
-        alignItems:'center',
-        padding:30,
-        gap:30,
-    },
-    formHeader: {
-        flexDirection:'row',
-        width:'100%',
-        gap:30,
-    },
-    headerText:{
-        fontSize:24,
-    },
-    formContent:{
-        flexDirection:"column",
-        paddingHorizontal:20,
-        gap:30,
-        width:'100%'
-    },
-    inputLabelText:{
-        fontSize:13,
-        marginHorizontal:5,
-    },
-    formLabel:{
-        flexDirection:'column',
-        gap:10
-    },
-    formInput:{
-        height:50,
-        borderRadius:6,
-        borderWidth:1,
-        padding:10,
-    },
-    formAlter:{
-        flexDirection:'row',
-        gap:2,
-    },
-    formButton:{
-        width:'100%',
-        justifyContent:'center',
-        alignItems:'center',
-        borderRadius:6,
-        backgroundColor:"#414B61",
-        padding:20,
-        color:'white',
-    },
-    formButtonText:{
-        color:'white'
-    }
-})

@@ -1,322 +1,233 @@
-import { sendSignupCode, signupUser } from '@/api/user/membership';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// 내부 함수 호출
+import { sendSignupCode, signupUser, verifyEmailCode } from '@/api/auth';
+import { useFormStateManager } from '@/hooks/common';
+import { RUNNING_TYPES, SignUpField, signUpFields } from '@/types/auth';
+import { FormPage, FormFieldType, FormContent, FormField, HeaderNav, SubmitButton } from '@/components/common';
 
-const RUNNING_TYPES = ['JOGGING', 'HALF_MARATHON', 'RUNNING', 'TRAIL_RUNNING', 'INTERVAL_TRAINING'];
+// 리액트 라이브러리
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { PreferenceField, preferenceFields } from '@/types/preference';
+import { createUserPreferences } from '@/api/user';
 
 export default function MemberShipPage() {
-  const insets = useSafeAreaInsets();
+  const [emailPending, setEmailPending] = useState<boolean>(false);
+  const { states, changeStates, resetStates } = useFormStateManager<SignUpField>(signUpFields);
 
-  const [email, setEmail] = useState('');
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [nickName, setNickName] = useState('');
-  const [height, setHeight] = useState('');
-  const [weight, setWeight] = useState('');
-  const [runningType, setRunningType] = useState('');
-  const [errors, setErrors] = useState({});
+  // form 유효성 검사 함수
+  const handleValidateForm = () => {
+    let hasError = false;
+    const errorStatus: [string, boolean] = ['status', false];
 
-  // 유효성 검사 함수
-  const validate = () => {
-    const newErrors = {};
-
-    if (!emailVerified) {
-      newErrors.email = '회원가입 전 인증코드를 먼저 보내주세요!';
+    if (!states['email']['status'] || !states['email_validation']['status']) {
+      hasError = true;
+      changeStates('email_validation', [errorStatus, ['message', '이메일 인증을 완료해주세요']]);
     }
 
-    if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+~\-={}[\]:;"\'<>,.?/]).{8,15}$/.test(password)) {
-      newErrors.password = '비밀번호: 영문+숫자+특수문자 8~15자';
+    if (
+      !states['password']['value'] ||
+      (states['password']['value'] &&
+        !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+~\-={}[\]:;"\'<>,.?/]).{8,15}$/.test(states['password']['value']))
+    ) {
+      hasError = true;
+      changeStates('password', [errorStatus, ['message', '비밀번호: 영문+숫자+특수문자 8~15자']]);
     }
 
-    if (name.length < 1 || name.length > 10) {
-      newErrors.name = '이름: 1~10자';
+    if (
+      !states['name']['value'] ||
+      (states['name']['value'] && (states['name']['value'].length < 1 || states['name']['value'].length > 10))
+    ) {
+      hasError = true;
+      changeStates('name', [errorStatus, ['message', '이름은 1~10자 이내로 입력해주세요']]);
     }
 
-    if (nickName.length < 1 || nickName.length > 10) {
-      newErrors.nickName = '닉네임: 1~10자';
+    if (
+      !states['nickName']['value'] ||
+      (states['nickName']['value'] &&
+        (states['nickName']['value'].length < 1 || states['nickName']['value'].length > 10))
+    ) {
+      hasError = true;
+      changeStates('nickName', [errorStatus, ['message', '닉네임은 1~10자 이내로 입력해주세요']]);
     }
 
-    if (Number(height) < 50) {
-      newErrors.height = '키: 50cm 이상 입력';
+    if (!states['weight']['value'] || (states['weight']['value'] && Number(states['weight']['value']) < 10)) {
+      hasError = true;
+      changeStates('weight', [errorStatus, ['message', '체중은 10kg 이상이어야 합니다. ']]);
     }
 
-    if (Number(weight) < 10) {
-      newErrors.weight = '몸무게: 10kg 이상 입력';
+    if (!states['height']['value'] || (states['height']['value'] && Number(states['height']['value']) < 50)) {
+      hasError = true;
+      changeStates('height', [errorStatus, ['message', '키는 50cm 이상이어야 합니다.']]);
     }
-
-    if (!RUNNING_TYPES.includes(runningType)) {
-      newErrors.runningType = '러닝타입: JOGGING, HALF_MARATHON, RUNNING, TRAIL_RUNNING, INTERVAL_TRAINING 중 선택';
+    if (!RUNNING_TYPES.includes(states['runningType']['value'])) {
+      hasError = true;
+      changeStates('runningType', [errorStatus, ['message', '러닝 타입을 선택해주세요']]);
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return !hasError;
   };
 
-  // 인증코드 발송
-  const handleSendCode = async () => {
+  // 이메일 인증코드 발송
+  const handleSendEmailCode = async () => {
+    console.log('눌림');
+    const email = states['email']['value'];
     if (!email) {
-      setErrors((prev) => ({ ...prev, email: '이메일을 입력해주세요.' }));
+      changeStates('email', [
+        ['status', false],
+        ['message', '이메일을 입력해주세요'],
+      ]);
       return;
     }
     try {
       await sendSignupCode(email);
-      setEmailVerified(true);
-      setErrors((prev) => ({ ...prev, email: undefined }));
-    } catch (e) {
-      setErrors((prev) => ({ ...prev, email: '이메일 인증 실패' }));
+      changeStates('email', [
+        ['status', true],
+        ['message', '이메일 발송이 완료되었습니다.'],
+      ]);
+      setEmailPending(true);
+      changeStates('email_validation', [['status', false]]);
+    } catch (e: any) {
+      changeStates('email', [
+        ['status', false],
+        ['message', e.message ?? '이메일 발송에 실패하였습니다.'],
+      ]);
+    }
+  };
+
+  // 이메일 인증 확인
+  const handleCheckEmailCode = async () => {
+    const email = states['email']['value'];
+    const emailValidationCode = states['email_validation']['value'];
+    if (!email || !emailValidationCode || !emailPending) {
+      changeStates('email_validation', [
+        ['status', false],
+        ['message', '인증코드를 발송해주세요'],
+      ]);
+      return;
+    }
+    try {
+      const response = await verifyEmailCode(email, emailValidationCode);
+      changeStates('email_validation', [
+        ['status', true],
+        ['message', '이메일 인증이 완료되었습니다.'],
+      ]);
+      setEmailPending(false);
+    } catch (e: any) {
+      changeStates('email_validation', [
+        ['status', false],
+        ['message', '유효하지 않은 인증 코드이거나 만료된 코드입니다.'],
+      ]);
     }
   };
 
   // 회원가입
-  const submitMemberShip = async () => {
-    if (!validate()) return;
+  const handleSumbitSignup = async () => {
+    if (!handleValidateForm()) return;
     try {
       await signupUser({
-        email,
-        password,
-        name,
-        nickName,
-        height: Number(height),
-        weight: Number(weight),
-        runningType,
+        email: states['email']['value'],
+        password: states['password']['value'],
+        name: states['name']['value'],
+        nickName: states['nickName']['value'],
+        height: Number(states['height']['value']),
+        weight: Number(states['weight']['value']),
+        runningType: states['runningType']['value'],
       });
-      router.push('/user/routine');
-    } catch (error) {
-      setErrors({ form: '회원가입 중 오류가 발생했습니다.' });
+      const preferencePayload = preferenceFields.reduce(
+        (acc, key) => {
+          acc[key] = ['NONE'];
+          return acc;
+        },
+        {} as Record<PreferenceField, string[]>,
+      );
+      await createUserPreferences(preferencePayload);
+      router.dismissAll();
+      router.push('/main');
+      router.push('/setting/preference');
+    } catch (e: any) {
+      changeStates('form', [
+        ['status', false],
+        ['message', e.message ?? '회원가입 중 오류가 발생하였습니다.'],
+      ]);
     }
   };
 
-  // 입력값 변경 시 에러 초기화
-  const handleChange = (field, value) => {
-    switch (field) {
-      case 'email':
-        setEmail(value);
-        setEmailVerified(false);
-        break;
-      case 'password':
-        setPassword(value);
-        break;
-      case 'name':
-        setName(value);
-        break;
-      case 'nickName':
-        setNickName(value);
-        break;
-      case 'height':
-        setHeight(value);
-        break;
-      case 'weight':
-        setWeight(value);
-        break;
-      case 'runningType':
-        setRunningType(value);
-        break;
-    }
-    setErrors((prev) => ({ ...prev, [field]: undefined, form: undefined }));
-  };
+  const makeNumberItems = (start: number, end: number) =>
+    Array.from({ length: end - start + 1 }, (_, i) => ({
+      key: i,
+      label: start + i,
+      value: start + i,
+    }));
+
+  useEffect(() => {
+    changeStates('runningType', [['value', RUNNING_TYPES[0]]]);
+  }, []);
 
   return (
-    <ScrollView contentContainerStyle={[styles.scrollContainer]} keyboardShouldPersistTaps="handled">
-      <View style={styles.formContainer}>
-        <View style={styles.formHeader}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.headerText}>{'<'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerText}>회원가입</Text>
-        </View>
-
-        <View style={styles.formContent}>
-          {/* 이메일 */}
-          <View>
-            <View style={styles.formLabel}>
-              <Text style={styles.inputLabelText}>이메일</Text>
-              <TextInput
-                style={[styles.formInput, errors.email && styles.inputError]}
-                placeholder="여기에 입력하세요"
-                value={email}
-                onChangeText={(text) => handleChange('email', text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.formButton} onPress={handleSendCode}>
-                <Text style={styles.formButtonText}>인증번호 발송</Text>
-              </TouchableOpacity>
-            </View>
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-            {emailVerified && !errors.email && <Text style={styles.successText}>이메일 인증 완료</Text>}
-          </View>
-
-          {/* 비밀번호 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>비밀번호</Text>
-            <TextInput
-              style={[styles.formInput, errors.password && styles.inputError]}
-              placeholder="여기에 입력하세요"
-              value={password}
-              onChangeText={(text) => handleChange('password', text)}
-              secureTextEntry
-            />
-            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-          </View>
-
-          {/* 이름 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>이름</Text>
-            <TextInput
-              style={[styles.formInput, errors.name && styles.inputError]}
-              placeholder="여기에 입력하세요"
-              value={name}
-              onChangeText={(text) => handleChange('name', text)}
-            />
-            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-          </View>
-
-          {/* 닉네임 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>닉네임</Text>
-            <TextInput
-              style={[styles.formInput, errors.nickName && styles.inputError]}
-              placeholder="여기에 입력하세요"
-              value={nickName}
-              onChangeText={(text) => handleChange('nickName', text)}
-            />
-            {errors.nickName && <Text style={styles.errorText}>{errors.nickName}</Text>}
-          </View>
-
-          {/* 키 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>키</Text>
-            <TextInput
-              style={[styles.formInput, errors.height && styles.inputError]}
-              placeholder="여기에 입력하세요"
-              value={height}
-              onChangeText={(text) => handleChange('height', text)}
-              keyboardType="numeric"
-            />
-            {errors.height && <Text style={styles.errorText}>{errors.height}</Text>}
-          </View>
-
-          {/* 몸무게 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>몸무게</Text>
-            <TextInput
-              style={[styles.formInput, errors.weight && styles.inputError]}
-              placeholder="여기에 입력하세요"
-              value={weight}
-              onChangeText={(text) => handleChange('weight', text)}
-              keyboardType="numeric"
-            />
-            {errors.weight && <Text style={styles.errorText}>{errors.weight}</Text>}
-          </View>
-
-          {/* 러닝타입 */}
-          <View style={styles.formLabel}>
-            <Text style={styles.inputLabelText}>러닝 타입</Text>
-            <TextInput
-              style={[styles.formInput, errors.runningType && styles.inputError]}
-              placeholder="JOGGING, HALF_MARATHON 등"
-              value={runningType}
-              onChangeText={(text) => handleChange('runningType', text)}
-              autoCapitalize="characters"
-            />
-            {errors.runningType && <Text style={styles.errorText}>{errors.runningType}</Text>}
-          </View>
-
-          {/* 폼 에러 */}
-          {errors.form && <Text style={[styles.errorText, { position: 'relative', top: 0 }]}>{errors.form}</Text>}
-
-          <TouchableOpacity style={styles.formButton} onPress={submitMemberShip}>
-            <Text style={styles.formButtonText}>회원가입하기</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
+    <FormPage title={'회원가입'} submit={handleSumbitSignup} reset={resetStates} submitText={'다음'}>
+      <FormContent states={states} handleResetForm={resetStates} handleChangeValue={changeStates} submitText={'가입'}>
+        {/* 이메일 */}
+        <FormField
+          label={'이메일'}
+          fieldKey={'email'}
+          placeholder={'이메일을 입력해주세요'}
+          onButtonPress={handleSendEmailCode}
+          buttonText={`${emailPending ? '재' : ''}발송`}
+          messageVisible={!states['email']['status'] || emailPending}
+          type={FormFieldType.input}
+        />
+        {/* 이메일 인증코드 */}
+        <FormField
+          label={'이메일 인증코드'}
+          placeholder={'이메일 인증번호를 입력해주세요'}
+          onButtonPress={handleCheckEmailCode}
+          buttonText={'확인'}
+          messageVisible={true}
+          type={FormFieldType.input}
+          fieldKey={'email_validation'}
+        />
+        {/* 비밀번호 */}
+        <FormField
+          type={FormFieldType.input}
+          label={'비밀번호'}
+          fieldKey={'password'}
+          placeholder={'비밀번호를 입력해주세요'}
+        />
+        {/* 이름 */}
+        <FormField type={FormFieldType.input} label={'이름'} fieldKey={'name'} placeholder={'이름을 입력해주세요'} />
+        {/* 닉네임 */}
+        <FormField
+          fieldKey={'nickName'}
+          label={'닉네임'}
+          placeholder={'닉네임을 입력해주세요'}
+          type={FormFieldType.input}
+        />
+        <FormField
+          label={'체중'}
+          fieldKey={'weight'}
+          placeholder={'체중을 선택해주세요'}
+          type={FormFieldType.input}
+          items={makeNumberItems(30, 100)}
+        />
+        <FormField
+          label={'키'}
+          fieldKey={'height'}
+          placeholder={'키를 입력해주세요'}
+          type={FormFieldType.input}
+          items={makeNumberItems(30, 100)}
+        />
+        <FormField
+          label={'러닝 타입'}
+          fieldKey={'runningType'}
+          placeholder={'러닝 타입을 선택하세요'}
+          items={RUNNING_TYPES.map((type, index) => ({
+            key: index,
+            label: type,
+            value: type,
+          }))}
+          type={FormFieldType.option}
+        />
+      </FormContent>
+    </FormPage>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollContainer: {
-    padding: 20,
-    backgroundColor: 'white',
-  },
-  formContainer: {
-    borderRadius: 21,
-    flexDirection: 'column',
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 30,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 30,
-  },
-  headerText: {
-    fontSize: 24,
-  },
-  formContent: {
-    flexDirection: 'column',
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  inputLabelText: {
-    fontSize: 13,
-    marginHorizontal: 5,
-  },
-  formLabel: {
-    flexDirection: 'column',
-    gap: 10,
-    position: 'relative', // 에러 메시지 absolute 배치용
-    marginBottom: 28, // 에러 메시지 공간 확보
-  },
-  formInput: {
-    height: 50,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-  },
-  inputError: {
-    borderColor: '#ff3b30',
-  },
-  errorText: {
-    position: 'absolute',
-    left: 0,
-    top: 80, // input(50) + gap(10) + 여유
-    color: '#ff3b30',
-    fontSize: 12,
-    marginTop: 2,
-    marginLeft: 2,
-    zIndex: 2,
-  },
-  successText: {
-    position: 'absolute',
-    left: 0,
-    top: 80,
-    color: '#2ecc71',
-    fontSize: 12,
-    marginTop: 2,
-    marginLeft: 2,
-    zIndex: 2,
-  },
-  formAlter: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  formButton: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
-    backgroundColor: '#414B61',
-    padding: 20,
-    marginTop: 20,
-  },
-  formButtonText: {
-    color: 'white',
-  },
-});

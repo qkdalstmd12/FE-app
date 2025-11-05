@@ -1,7 +1,7 @@
 // 파일 경로: src/screens/SettingsScreen.tsx
 import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -13,9 +13,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { removeToken } from '@/utils/auth';
+import { useFormStateManager } from '@/hooks/common';
+import { SignUpField, signUpFields } from '@/types/auth';
 
 const SettingsScreen: React.FC = () => {
   const [receiveNotifications, setReceiveNotifications] = useState(true);
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setParams({ title: '설정' });
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(
@@ -25,34 +34,16 @@ const SettingsScreen: React.FC = () => {
         { text: '취소', style: 'cancel' },
         {
           text: '확인',
-          onPress: () => {
+          onPress: async () => {
             console.log('로그아웃 처리');
-            router.push('/');
+            await removeToken();
+            router.push('/main');
           },
         },
       ],
       { cancelable: true },
     );
   };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      '회원 탈퇴',
-      '정말로 회원 탈퇴 하시겠습니까? 모든 데이터가 삭제됩니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '확인',
-          onPress: () => {
-            console.log('회원 탈퇴 처리');
-            router.push('/');
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  };
-
   // 일반 설정 항목 컴포넌트
   const SettingsItem: React.FC<{
     iconName: string; // string 타입 유지 (아래 IconComponent에서 처리)
@@ -115,12 +106,7 @@ const SettingsScreen: React.FC = () => {
       {Platform.OS === 'ios' && <StatusBar barStyle="dark-content" />}
       {Platform.OS === 'android' && <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />}
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>설정</Text>
-      </View>
+      <View style={styles.header}></View>
 
       <View style={[styles.section, styles.firstSection]}>
         <Text style={styles.sectionTitle}>일반</Text>
@@ -136,6 +122,12 @@ const SettingsScreen: React.FC = () => {
           text="선호도 설정"
           onPress={() => router.push('/setting/preference')}
           isLast={true}
+        />
+        <SettingsItem
+          iconName="form-textbox-password"
+          iconLibrary="MaterialCommunityIcons"
+          text="비밀번호 재설정"
+          onPress={() => router.push('/user/findPassword')}
         />
       </View>
 
@@ -153,14 +145,6 @@ const SettingsScreen: React.FC = () => {
           onPress={handleLogout}
           showChevron={false}
         />
-        {/* <SettingsItem
-          iconName="delete-outline"
-          iconLibrary="MaterialCommunityIcons"
-          text="회원 탈퇴"
-          onPress={handleDeleteAccount}
-          showChevron={false}
-          isLast={true}
-        /> */}
       </View>
     </SafeAreaView>
   );
@@ -174,8 +158,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',

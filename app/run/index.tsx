@@ -20,7 +20,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View 
 
 export default function RunPage() {
   const { routeId } = useLocalSearchParams<{ routeId: string }>();
+
+  // 세팅 값 가져오기
   const { routePoints, origin, destination, targetPace, targetTime } = useRunSetting(routeId);
+
+  // 러닝 상태 관리하기
   const {
     isTracking,
     isPaused,
@@ -38,8 +42,10 @@ export default function RunPage() {
     updateLocation,
   } = useRunningTracker({ destination, targetPace });
 
+  // 현재 위치 추적하기
   const { location } = useUserLocation({ isTracking });
 
+  // 러닝 기록 관리하기
   const { fullRecords, currentFeedback, setCurrentFeedback } = useRunRecorder({
     currentLocation: location,
     routeId,

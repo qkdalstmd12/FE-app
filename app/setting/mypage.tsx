@@ -1,45 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router'; // 기존 navigation 대체
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { default as axios, default as axiosInstance } from '../../api/axios';
-import { getToken } from '../../utils/auth';
+import { Alert, SafeAreaView, Text } from 'react-native';
+import { RUNNING_TYPES, UserDataField, userDataFields } from '@/types/auth';
+import { useFormStateManager } from '@/hooks/common';
+import { getUserProfile, updateUserProfile } from '@/api/user';
+import { FormContent, FormField, FormFieldType, FormPage } from '@/components/common';
 
 const MyInfoEditScreen = () => {
-  const [name, setName] = useState('');
-  const [nickName, setNickName] = useState('');
-  const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
-  const [runningType, setRunningType] = useState('');
   const [loading, setLoading] = useState(true);
+  const { states, changeStates, resetStates } = useFormStateManager<UserDataField>(userDataFields);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const token = await getToken();
-        const response = await axiosInstance.get('/api/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const { name, nickName, height, weight, runningType } = response.data;
-        setName(name);
-        setNickName(nickName);
-        setHeight(String(height));
-        setWeight(String(weight));
-        setRunningType(runningType);
+        const { name, nickName, height, weight, runningType } = await getUserProfile();
+        changeStates('name', [['value', name]]);
+        changeStates('nickName', [['value', nickName]]);
+        changeStates('height', [['value', String(height)]]);
+        changeStates('weight', [['value', String(height)]]);
+        changeStates('runningType', [['value', runningType]]);
       } catch (error: any) {
         console.error('프로필 로드 실패:', error.response?.data || error.message);
         Alert.alert('오류', '사용자 정보를 불러오는 데 실패했습니다.');
@@ -47,115 +27,103 @@ const MyInfoEditScreen = () => {
         setLoading(false);
       }
     };
-
     fetchUserProfile();
   }, []);
 
-  const handleSave = async () => {
-    if (!name || !nickName || !height || !weight || !runningType) {
-      Alert.alert('알림', '모든 정보를 입력해주세요.');
-      return;
+  const handleValidateForm = () => {
+    let hasError = false;
+    const errorStatus: [string, boolean] = ['status', false];
+
+    if (
+      !states['name']['value'] ||
+      (states['name']['value'] && (states['name']['value'].length < 1 || states['name']['value'].length > 10))
+    ) {
+      hasError = true;
+      changeStates('name', [errorStatus, ['message', '이름은 1~10자 이내로 입력해주세요']]);
     }
 
+    if (
+      !states['nickName']['value'] ||
+      (states['nickName']['value'] &&
+        (states['nickName']['value'].length < 1 || states['nickName']['value'].length > 10))
+    ) {
+      hasError = true;
+      changeStates('nickName', [errorStatus, ['message', '닉네임은 1~10자 이내로 입력해주세요']]);
+    }
+
+    if (!states['weight']['value'] || (states['weight']['value'] && Number(states['weight']['value']) < 10)) {
+      hasError = true;
+      changeStates('weight', [errorStatus, ['message', '체중은 10kg 이상이어야 합니다. ']]);
+    }
+
+    if (!states['height']['value'] || (states['height']['value'] && Number(states['height']['value']) < 50)) {
+      hasError = true;
+      changeStates('height', [errorStatus, ['message', '키는 50cm 이상이어야 합니다.']]);
+    }
+    if (!RUNNING_TYPES.includes(states['runningType']['value'])) {
+      hasError = true;
+      changeStates('runningType', [errorStatus, ['message', '러닝 타입을 선택해주세요']]);
+    }
+    return !hasError;
+  };
+
+  const handleSave = async () => {
+    if (!handleValidateForm()) {
+      return;
+    }
     try {
-      await axios.put('/api/profile-update', {
-        name,
-        nickName,
-        height: parseFloat(height),
-        weight: parseFloat(weight),
-        runningType,
+      await updateUserProfile({
+        name: states['name']['value'],
+        nickName: states['nickName']['value'],
+        height: Number(states['height']['value']),
+        weight: Number(states['weight']['value']),
+        runningType: states['runningType']['value'],
       });
       Alert.alert('성공', '프로필이 업데이트되었습니다.');
       router.back();
-    } catch (error: any) {
-      console.error('프로필 업데이트 실패:', error.response?.data || error.message);
-      Alert.alert('오류', '프로필 업데이트에 실패했습니다.');
+    } catch (e: any) {
+      changeStates('form', [
+        ['status', false],
+        ['message', e.message ?? '회원가입 중 오류가 발생하였습니다.'],
+      ]);
     }
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>정보를 불러오는 중...</Text>
+      <SafeAreaView>
+        <Text>정보를 불러오는 중...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>내 정보 수정</Text>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>이름</Text>
-            <TextInput style={styles.textInput} value={name} onChangeText={setName} placeholder="이름 입력" />
-            <Text style={styles.inputLabel}>닉네임</Text>
-            <TextInput style={styles.textInput} value={nickName} onChangeText={setNickName} placeholder="닉네임 입력" />
-            <Text style={styles.inputLabel}>키 (cm)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={height}
-              onChangeText={setHeight}
-              placeholder="키 입력"
-              keyboardType="numeric"
-            />
-            <Text style={styles.inputLabel}>몸무게 (kg)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={weight}
-              onChangeText={setWeight}
-              placeholder="몸무게 입력"
-              keyboardType="numeric"
-            />
-            <Text style={styles.inputLabel}>러닝 타입</Text>
-            <TextInput
-              style={styles.textInput}
-              value={runningType}
-              onChangeText={setRunningType}
-              placeholder="JOGGING / RUNNING 등"
-            />
-          </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>저장</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <FormPage submit={handleSave} title={'프로필 수정하기'} reset={resetStates} submitText={'수정'}>
+      <FormContent states={states} handleResetForm={resetStates} handleChangeValue={changeStates} submitText={'가입'}>
+        {/* 이름 */}
+        <FormField type={FormFieldType.input} label={'이름'} fieldKey={'name'} placeholder={'이름을 입력해주세요'} />
+        {/* 닉네임 */}
+        <FormField
+          fieldKey={'nickName'}
+          label={'닉네임'}
+          placeholder={'닉네임을 입력해주세요'}
+          type={FormFieldType.input}
+        />
+        <FormField label={'체중'} fieldKey={'weight'} placeholder={'체중을 선택해주세요'} type={FormFieldType.input} />
+        <FormField label={'키'} fieldKey={'height'} placeholder={'키를 입력해주세요'} type={FormFieldType.input} />
+        <FormField
+          label={'러닝 타입'}
+          fieldKey={'runningType'}
+          placeholder={'러닝 타입을 선택하세요'}
+          items={RUNNING_TYPES.map((type, index) => ({
+            key: index,
+            label: type,
+            value: type,
+          }))}
+          type={FormFieldType.option}
+        />
+      </FormContent>
+    </FormPage>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  scrollContent: { padding: 20 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, color: '#666' },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  backButton: { marginRight: 10 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold' },
-  inputSection: { marginBottom: 30 },
-  inputLabel: { fontSize: 14, fontWeight: 'bold', marginBottom: 5 },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-});
-
 export default MyInfoEditScreen;

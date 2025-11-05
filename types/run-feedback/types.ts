@@ -1,4 +1,4 @@
-// stores/types.ts
+// stores/index.ts
 
 import { Float } from 'react-native/Libraries/Types/CodegenTypes';
 

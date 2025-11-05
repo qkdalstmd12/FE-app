@@ -1,10 +1,14 @@
 import { createRoutine } from '@/api/user/routine';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FormContent, FormField, FormFieldType, FormPage } from '@/components/common';
+import { useFormStateManager } from '@/hooks/common';
+import { RoutineField, routineFields } from '@/types/auth';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // 루틴 객체 타입 정의
-interface Routine {
+interface Add {
   title: string;
   location: string;
   days: number[];
@@ -20,7 +24,7 @@ interface ServerRoutine {
   day: string[];
 }
 
-const defaultRoutine: Routine = {
+const defaultRoutine: Add = {
   title: '',
   location: '',
   days: [],
@@ -61,35 +65,22 @@ const titleToPlaceEnum = (title: string): ServerRoutine['place'] => {
   return map[title] ?? 'ETC';
 };
 
-const toServerRoutine = (routine: Routine): ServerRoutine => ({
+const toServerRoutine = (routine: Add): ServerRoutine => ({
   place: routine.title,
   destination: routine.location,
   time: routine.start,
   day: routine.days.map(dayIdxToServerDay),
 });
 
-export default function RoutineSetup() {
-  const [routines, setRoutines] = useState<Routine[]>([
+export default function RoutineSetupPage() {
+  const [routines, setRoutines] = useState<Add[]>([
     { ...defaultRoutine, title: '회사', location: '' },
     { ...defaultRoutine, title: '헬스장', location: '' },
   ]);
 
-  const toggleDay = (routineIdx: number, dayIdx: number) => {
-    setRoutines((prev) =>
-      prev.map((r, i) =>
-        i === routineIdx
-          ? {
-              ...r,
-              days: r.days.includes(dayIdx) ? r.days.filter((d) => d !== dayIdx) : [...r.days, dayIdx],
-            }
-          : r,
-      ),
-    );
-  };
+  const { states, changeStates, resetStates } = useFormStateManager<RoutineField>(routineFields);
 
-  const addRoutine = () => setRoutines((prev) => [...prev, { ...defaultRoutine }]);
-
-  const sendRoutine = async (serverRoutine: ServerRoutine) => {
+  const handleSubmitRoutine = async (serverRoutine: ServerRoutine) => {
     try {
       const response = createRoutine(serverRoutine);
     } catch (error) {
@@ -98,7 +89,7 @@ export default function RoutineSetup() {
     }
   };
 
-  const submitAllRoutines = async () => {
+  const handleSubmitAllRoutines = async () => {
     router.push('/user/preference');
     try {
       for (const routine of routines) {
@@ -112,78 +103,65 @@ export default function RoutineSetup() {
   };
 
   return (
-    <ScrollView style={styles.scrollContainer}>
-      <View style={styles.formContainer}>
-        <View style={styles.formHeader}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.headerText}>{'<'}</Text>
+    <FormPage submit={handleSubmitAllRoutines} title={'루틴을 생성해주세요'} reset={null} submitText={'생성하기'}>
+      <FormContent
+        states={states}
+        handleChangeValue={changeStates}
+        handleResetForm={resetStates}
+        submitText={'생성하기'}
+      >
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity
+            key={0}
+            style={styles.checkboxRow}
+            onPress={() => changeStates('routineType', [['value', 'fix']])}
+          >
+            <MaterialCommunityIcons
+              style={styles.checkboxStyle}
+              name={states['routineType']['value'] === 'fix' ? 'checkbox-marked' : 'checkbox-blank-outline'}
+              size={24}
+            />
+            <Text style={styles.checkboxLabel}>{value}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerText}>루틴 설정</Text>
+          <TouchableOpacity
+            key={1}
+            style={styles.checkboxRow}
+            onPress={() => changeStates('routineType', [['value', 'daily']])}
+          >
+            <MaterialCommunityIcons
+              style={styles.checkboxStyle}
+              name={states['routineType']['value'] === 'daily' ? 'checkbox-marked' : 'checkbox-blank-outline'}
+              size={24}
+            />
+            <Text style={styles.checkboxLabel}>{value}</Text>
+          </TouchableOpacity>
         </View>
-        <ScrollView style={{ width: '100%' }}>
-          {routines.map((routine, idx) => (
-            <View key={idx} style={styles.routineBox}>
-              <TextInput
-                style={styles.input}
-                placeholder="장소"
-                value={routine.title}
-                onChangeText={(text) =>
-                  setRoutines((prev) => prev.map((r, i) => (i === idx ? { ...r, title: text } : r)))
-                }
-              />
-              <TextInput
-                style={[styles.input, { marginBottom: 12 }]}
-                placeholder="목적지"
-                value={routine.location}
-                onChangeText={(text) =>
-                  setRoutines((prev) => prev.map((r, i) => (i === idx ? { ...r, location: text } : r)))
-                }
-              />
-              <View style={styles.timeRow}>
-                <TextInput
-                  style={styles.timeInput}
-                  placeholder="시작"
-                  value={routine.start}
-                  onChangeText={(text) =>
-                    setRoutines((prev) => prev.map((r, i) => (i === idx ? { ...r, start: text } : r)))
-                  }
-                />
-                <TextInput
-                  style={styles.timeInput}
-                  placeholder="종료"
-                  value={routine.end}
-                  onChangeText={(text) =>
-                    setRoutines((prev) => prev.map((r, i) => (i === idx ? { ...r, end: text } : r)))
-                  }
-                />
-              </View>
-              <View style={styles.dayRow}>
-                {dayNames.map((d, dIdx) => (
-                  <TouchableOpacity
-                    key={d}
-                    style={[styles.dayBtn, routine.days.includes(dIdx) && styles.dayBtnActive]}
-                    onPress={() => toggleDay(idx, dIdx)}
-                  >
-                    <Text style={[styles.dayBtnText, routine.days.includes(dIdx) && styles.dayBtnTextActive]}>{d}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+        <FormField
+          type={FormFieldType.option}
+          label={'장소 유형'}
+          placeholder={'장소 유형을 선택해주세요'}
+          fieldKey={'place'}
+        />
+        <View style={styles.timeRow}></View>
+        <View style={styles.dayRow}>
+          {dayNames.map((d, dIdx) => (
+            <TouchableOpacity
+              key={d}
+              style={[styles.dayBtn, routine.days.includes(dIdx) && styles.dayBtnActive]}
+              onPress={() => toggleDay(idx, dIdx)}
+            >
+              <Text style={[styles.dayBtnText, routine.days.includes(dIdx) && styles.dayBtnTextActive]}>{d}</Text>
+            </TouchableOpacity>
           ))}
-        </ScrollView>
-        <TouchableOpacity style={styles.addBtn} onPress={addRoutine}>
-          <Text style={styles.addBtnText}>+ 고정 스케줄 추가</Text>
-        </TouchableOpacity>
-        <View style={styles.bottomRow}>
-          <TouchableOpacity onPress={submitAllRoutines} style={styles.startBtn}>
-            <Text style={styles.startBtnText}>저장</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/user/preference')} style={styles.startBtn}>
-            <Text style={styles.startBtnText}>다음</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
+        <FormField
+          type={FormFieldType.input}
+          label={'시작시간'}
+          placeholder={'시간을 입력해주세요'}
+          fieldKey={'time'}
+        />
+      </FormContent>
+    </FormPage>
   );
 }
 

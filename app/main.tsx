@@ -1,146 +1,85 @@
 import { getToken, removeToken } from '@/utils/auth';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, SafeAreaView, Text, View } from 'react-native';
+import { mainStyles as styles } from '@/styles/main';
 
 export default function Main() {
   return <MainPage />;
 }
 
 function MainPage() {
-  const [isLogged, setIsLogged] = useState(false);
-
+  const checkLogin = async () => {
+    const token = await getToken();
+    console.log('token', token);
+    if (!!token) router.push('/home');
+    return !!token;
+  };
   useEffect(() => {
-    console.log("루트로 왔음");
-    const checkLogin = async () => {
-      const token = await getToken();
-      console.log('token', token);
-      setIsLogged(!!token);
-    };
+    console.log('루트로 왔음');
     checkLogin();
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoHeader}>
-        <View style={styles.header}>
-          <Text style={styles.LogoText}>Runnify</Text>
-          <Text style={styles.summaryText}>당신의 일상에 걸음을</Text>
-        </View>
-        <View style={styles.taglist}>
-          <View style={styles.tag}>
-            <Text>#런닝메이트</Text>
+    <SafeAreaView style={styles.viewBg}>
+      {/* 제일 상단 컨테이너*/}
+      <View style={[styles.view]}>
+        <View style={styles.frameParent}>
+          <View style={styles.frameGroup}>
+            <View style={styles.logoSection}>
+              <Text style={styles.logo}>Runify</Text>
+              <Text style={styles.logo_subtext}>당신의 일상에 걸음을</Text>
+            </View>
+            <View style={[styles.frameContainer, styles.parentFlexBox]}>
+              <View style={[styles.wrapper, styles.buttonFlexBox]}>
+                <Text style={styles.safeareaviewText}># 러닝 습관</Text>
+              </View>
+              <View style={[styles.wrapper, styles.buttonFlexBox]}>
+                <Text style={styles.safeareaviewText}># 러닝 메이트</Text>
+              </View>
+              <View style={[styles.wrapper, styles.buttonFlexBox]}>
+                <Text style={styles.safeareaviewText}># 러닝 루트</Text>
+              </View>
+            </View>
+            <Pressable
+              style={[styles.button, styles.buttonFlexBox]}
+              onPress={() => {
+                router.push('/user/login');
+              }}
+            >
+              <Text style={styles.button_text}>로그인</Text>
+            </Pressable>
           </View>
-          <View style={styles.tag}>
-            <Text>#러닝루트</Text>
-          </View>
-          <View style={styles.tag}>
-            <Text>#달리기습관</Text>
+          <View style={[styles.parent, styles.buttonFlexBox]}>
+            <Pressable
+              style={styles.linkBox}
+              onPress={() => {
+                router.push('/user/membership');
+              }}
+            >
+              <Text style={[styles.textTypo]}>회원가입</Text>
+            </Pressable>
+            <View style={styles.frameChild} />
+            <Pressable
+              style={styles.linkBox}
+              onPress={() => {
+                router.push('/user/findId');
+              }}
+            >
+              <Text style={styles.textTypo}>아이디 찾기</Text>
+            </Pressable>
+            <View style={styles.frameChild} />
+            <Pressable
+              style={styles.linkBox}
+              onPress={() => {
+                router.push('/user/findPassword');
+              }}
+            >
+              <Text style={styles.textTypo}>비밀번호 찾기</Text>
+            </Pressable>
           </View>
         </View>
       </View>
-
-      <View style={styles.bottomSection}>
-        <View style={{ width: '100%' }}>
-          {!isLogged ? (
-            <View style={{ flexDirection: 'row', width: '90%', gap: 10 }}>
-              <TouchableOpacity onPress={() => router.push('/user/login')} style={styles.loginButton}>
-                <Text>로그인</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <TouchableOpacity
-                onPress={() => {
-                  removeToken();
-                  setIsLogged(false);
-                }}
-                style={styles.loginButton}
-              >
-                <Text>로그아웃</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.loginButton}>
-                <Text>홈으로 이동</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-        <View style={styles.formAlter}>
-          <TouchableOpacity onPress={() => router.push('/user/membership')}>
-            <Text>회원가입</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/user/findId')}>
-            <Text>아이디 찾기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/user/findPassword')}>
-            <Text>비밀번호 찾기</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'column',
-    gap: 100,
-    alignItems: 'center',
-    height: '100%',
-    justifyContent: 'center',
-  },
-  header: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column',
-    gap: 20,
-  },
-  logoHeader: {
-    flexDirection: 'column',
-    gap: 10,
-  },
-  taglist: {
-    flexDirection: 'row',
-    gap: 5,
-  },
-  tag: {
-    borderRadius: 30,
-    borderWidth: 1,
-    padding: 8,
-  },
-  LogoText: {
-    fontSize: 65,
-  },
-  summaryText: {
-    fontSize: 35,
-  },
-  loginButton: {
-    borderRadius: 6,
-    backgroundColor: '#E2DFD8',
-    borderWidth: 1,
-    padding: 18,
-    alignItems: 'center',
-    flex: 1,
-  },
-  formAlter: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  formButton: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
-    backgroundColor: '#414B61',
-    padding: 20,
-  },
-  formButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  bottomSection: {
-    flexDirection: 'column',
-    gap: 10,
-    justifyContent: 'flex-end',
-  },
-});
