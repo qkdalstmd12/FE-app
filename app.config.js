@@ -15,6 +15,8 @@ export default {
 
     ios: {
       supportsTablet: true,
+      // iOS 번들 식별자: App Store / EAS 빌드에 필수. ENV로 오버라이드 가능
+      bundleIdentifier: process.env.EXPO_PUBLIC_IOS_BUNDLE_ID ?? 'com.runify.runify',
     },
 
     android: {
