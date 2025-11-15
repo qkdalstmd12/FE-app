@@ -11,7 +11,7 @@ export default {
     icon: './assets/images/icon.png',
     scheme: 'runify',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: false,
+    newArchEnabled: true,
 
     ios: {
       supportsTablet: true,
