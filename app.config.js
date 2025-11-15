@@ -25,7 +25,7 @@ export default {
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: 'com.runify.Runify',
+      package: 'com.runify.runify',
     },
 
     web: {
