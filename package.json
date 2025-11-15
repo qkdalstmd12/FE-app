@@ -67,7 +67,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@react-native-community/cli": "^18.0.0",
-    "@types/react": "~19.0.10",
+    "@types/react": "^19.1.0",
     "@types/react-native-vector-icons": "^6.4.18",
     "dotenv": "^17.2.3",
     "eas-cli": "^16.27.0",
@@ -79,7 +79,7 @@
     "typescript": "~5.8.3"
   },
   "private": true,
-  "resolutions": {
-    "kotlin-gradle-plugin": "1.9.24"
+  "overrides": {
+    "@types/react": "^19.1.0"
   }
 }
