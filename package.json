@@ -77,5 +77,8 @@
     "prettier": "^3.5.3",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "kotlin-gradle-plugin": "1.9.24"
+  }
 }
