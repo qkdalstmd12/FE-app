@@ -2,10 +2,10 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'Runify',
-    slug: 'Runify',
+    name: 'runnnify',
+    slug: 'runnnify',
     version: '1.0.0',
-    owner: 'runify',
+    owner: 'qkdalstmd14',
 
     orientation: 'portrait',
     icon: './assets/images/icon.png',
@@ -55,7 +55,7 @@ export default {
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
       router: {},
       eas: {
-        projectId: 'e91a019d-c96d-482e-816c-767d286ee9c9',
+        projectId: 'b41ec531-b700-45ca-8843-37f722152f8d',
       },
     },
   },

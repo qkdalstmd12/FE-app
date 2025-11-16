@@ -27,16 +27,16 @@ export default function HomePage() {
     return days[today.getDay()];
   }
 
-  const [routineData, setRoutineData] = useState<any>(null);
+  const [routineData, setRoutineData] = useState<RoutineProps[] | null>(null);
   const fetchRoutine = async () => {
     const todayString = getTodayString();
     try {
-      const data = await getRoutineList();
-      const filteredData = data?.filter((routine: { day: string | string[] }) => routine.day.includes(todayString));
+      const data: RoutineProps[] = await getRoutineList();
+      const filteredData = data?.filter((routine) => routine.day.includes(todayString));
       setRoutineData(data);
       console.log(data);
     } catch (error) {
-      const filteredData = routineDummy.filter((routine: { day: string | string[] }) =>
+      const filteredData = routineDummy.filter((routine) =>
         routine.day.includes(todayString),
       );
       setRoutineData(filteredData);
@@ -71,7 +71,7 @@ export default function HomePage() {
   );
 }
 
-const RoutineContainer = ({ routines }: any) => {
+const RoutineContainer = ({ routines }: { routines: RoutineProps[] | null }) => {
   const bottomSheetModalRef = useRef(null);
   const snapPoints = useMemo(() => ['60%', '70%', '80%', '90%', '100%'], []);
 
@@ -90,7 +90,7 @@ const RoutineContainer = ({ routines }: any) => {
     </View>
   );
 
-  const renderItem = useCallback(({ item }) => <RoutineCard {...item} />, []);
+  const renderItem = useCallback(({ item }: { item: RoutineProps }) => <RoutineCard {...item} />, []);
   return (
     <BottomSheet
       ref={bottomSheetModalRef}
@@ -126,7 +126,7 @@ const RoutineContainer = ({ routines }: any) => {
         <BottomSheetFlatList
           contentContainerStyle={styles.RoutineSection}
           data={routines ?? []}
-          keyExtractor={(item) => item.routineId}
+          keyExtractor={(item: RoutineProps) => item.routineId.toString()}
           renderItem={renderItem}
           scrollEnabled={true}
           ListEmptyComponent={renderEmpty}
@@ -140,12 +140,12 @@ interface RoutineProps {
   routineId: number;
   place: string;
   destination: string;
-  pathId?: number;
+  pathId?: number | null;
   time: string;
   day: string[];
 }
 
-const RoutineCard = ({ routineId, place, destination, pathId, time, day }) => {
+const RoutineCard = ({ routineId, place, destination, pathId, time, day }: RoutineProps) => {
   return (
     <View style={styles.RoutineCard}>
       <View style={styles.RoutineCardDetail}>
